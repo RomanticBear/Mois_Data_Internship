@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-국회회의록(웹 뷰어) 상세 페이지 크롤링 스크립트 (디버그/항상-저장 + 안건매핑)
-- meeting_no 추출 강화, data_mem_id 안전 추출
-- place/open_time/page_url 제거
-- minutes_speeches.csv 에 안건 필드(agenda_item_orders, agenda_item_titles, agenda_item_times) 추가
-- 안건바가 연달아 2개 이상 나오는 경우, '발언자 등장 전까지' 연속된 안건들을 하나의 그룹으로 묶어 합쳐서 매핑
-
-pip install requests beautifulsoup4 pandas
+국회회의록(웹 뷰어) 상세 페이지 크롤링 스크립트 (다중 id + 회차별 폴더 저장 + 안건매핑)
+- 여러 minutes id를 순회하며 파싱
+- session(제 n회) 폴더 생성 후, meeting_no(제n차/제n호)별로 2개 CSV 저장
+  └ {base_out}/제{session}회/{meeting_no}_minutes_header_summary.csv
+  └ {base_out}/제{session}회/{meeting_no}_minutes_speeches.csv
+- minutes_speeches.csv 에 안건 필드(agenda_item_orders, agenda_item_titles, agenda_item_times) 포함
 """
 
+import os
 import re
 import time
 import requests
@@ -18,13 +18,25 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; MOIS-Intern-Project/1.0)"}
 DEBUG   = True
 RETRY   = 2
-SLEEP_SEC = 0.7
+SLEEP_SEC = 0.6
 
-# 크롤링할 '회의록 뷰어 상세 URL'
-DETAIL_URLS = [
-    "https://record.assembly.go.kr/assembly/viewer/minutes/xml.do?id=55384&type=view"
-    
+# ==========================
+# 1) 여기에 minutes id 목록 입력
+# ==========================
+MINUTES_IDS = [
+    52081, 52082, 52083, 52130, 52131, 52132, 52133, 52134, 52135, 52409, 52410,
+    52411, 52412, 52413, 52414, 52415, 52416, 52417, 52418, 52419, 52420, 52421,
+    52422, 52615, 52649, 52650, 52687, 54447, 52726, 52727, 52770, 54593, 54615,
+    54650, 54950, 54947, 55011, 55071, 55130, 55234, 55266, 55338, 55375, 55379,
+    55395, 55396, 55410, 55454, 55680, 55662
 ]
+
+# DETAIL_URLS 자동 생성
+DETAIL_URLS = [f"https://record.assembly.go.kr/assembly/viewer/minutes/xml.do?id={i}&type=view"
+               for i in MINUTES_IDS]
+
+# 저장 루트 폴더(원하면 바꿔도 OK)
+BASE_OUTDIR = "minutes_output"
 
 # ----------------- 유틸 -----------------
 def log(*args):
@@ -74,7 +86,7 @@ def parse_header_title(soup: BeautifulSoup):
         if not meeting_no:
             header_text = clean(soup.select_one("#minutes .minutes_header").get_text(" ")) \
                           if soup.select_one("#minutes .minutes_header") else ""
-            m3 = re.search(r"제\s*\d+\s*호", header_text)
+            m3 = re.search(r"제\s*\d+\s*[차호]", header_text)
             if m3: meeting_no = m3.group(0)
     log(f"  header: session={session}, session_type={session_type}, meeting_no={meeting_no}")
     return session, session_type, meeting_no
@@ -123,7 +135,7 @@ def parse_header(url: str):
                 if label == "의사일정": cnt_agenda += 1
                 else: cnt_sched += 1
     log(f"  agenda_items={cnt_agenda}, scheduled_items={cnt_sched}")
-    return rows
+    return rows, (session, meeting_no)
 
 # ----------------- 본문: 안건바 → 발언 매핑 -----------------
 def get_text_with_br(container: Tag) -> str:
@@ -141,22 +153,17 @@ def get_text_with_br(container: Tag) -> str:
     return text.strip()
 
 def _parse_agenda_title(a_or_p: Tag):
-    """a.tit 텍스트(권장) 또는 p 안의 텍스트에서 'n. 제목'을 분리"""
     txt = ""
     if a_or_p:
-        if a_or_p.name == "a":
-            txt = clean(a_or_p.get_text())
-        else:
-            txt = clean(a_or_p.get_text())
+        txt = clean(a_or_p.get_text())
     m = re.match(r"(\d+)\.\s*(.+)", txt)
     if m:
-        return m.group(1), clean(m.group(2))   # (번호, 제목)
+        return m.group(1), clean(m.group(2))
     return "", txt
 
 def _nearest_time_after(node: Tag):
-    """현재 안건바 뒤쪽에서 가까운 p.tit_sm.taR 을 찾아 시각 텍스트를 돌려줌(없으면 빈 문자열)"""
     cur = node
-    for _ in range(12):  # 너무 멀리 가지 않도록 제한
+    for _ in range(12):
         cur = cur.find_next()
         if not isinstance(cur, Tag):
             continue
@@ -164,17 +171,12 @@ def _nearest_time_after(node: Tag):
         if cur.name == "p" and "tit_sm" in cls and "taR" in cls:
             return clean(cur.get_text())
         if cur.name == "p" and "tit_sm" in cls and "angun" in cls:
-            # 다음 안건바가 바로 나오면 종료
             break
         if cur.name == "div" and "speaker" in cls:
             break
     return ""
 
 def _extract_agenda_groups(soup: BeautifulSoup):
-    """
-    minutes_body에서 안건바들을 '발언자 등장 전까지 연속된 것'끼리 묶어 그룹화.
-    각 그룹 = {'start_order': int, 'orders': '1,2', 'titles': 'A / B', 'times': '(15시..) / (15시..)' }
-    """
     speakers = soup.select("#minutes .minutes_body .speaker")
     bars = soup.select("#minutes .minutes_body p.tit_sm.angun")
     log(f"  agenda bars: {len(bars)}, speakers: {len(speakers)}")
@@ -185,7 +187,6 @@ def _extract_agenda_groups(soup: BeautifulSoup):
         cur_bar = bars[i]
         orders, titles, times = [], [], []
 
-        # 현재 바부터 시작해서 '다음 발언자 전까지' 등장하는 바들을 한 그룹으로 묶음
         while True:
             a_tit = cur_bar.select_one("a.tit")
             num, title = _parse_agenda_title(a_tit if a_tit else cur_bar)
@@ -194,7 +195,6 @@ def _extract_agenda_groups(soup: BeautifulSoup):
             tm = _nearest_time_after(cur_bar)
             if tm: times.append(tm)
 
-            # 다음 바와 현재 바 사이에 speaker가 있는지 검사 → 있으면 그룹 종료
             next_bar = bars[i+1] if i+1 < len(bars) else None
             if not next_bar:
                 break
@@ -209,15 +209,13 @@ def _extract_agenda_groups(soup: BeautifulSoup):
                     break
             if found_speaker_between:
                 break
-            # speaker가 없고 바로 다음도 바라면 같은 그룹에 포함
             i += 1
             cur_bar = next_bar
 
-        # 그룹의 시작 발언 순번: 그룹의 마지막 바 이후 등장하는 첫 speaker
         first_spk_after_group = cur_bar.find_next(class_="speaker")
         start_order = None
         if first_spk_after_group:
-            for idx, spk in enumerate(speakers, start=1):
+            for idx, spk in enumerate(soup.select("#minutes .minutes_body .speaker"), start=1):
                 if spk is first_spk_after_group:
                     start_order = idx
                     break
@@ -235,17 +233,15 @@ def _extract_agenda_groups(soup: BeautifulSoup):
     log("  agenda groups (start_order → orders | titles):")
     for g in groups:
         log(f"    {g['start_order']:>3} → {g['orders']} | {g['titles']}")
-    return groups, speakers
+    return groups, soup.select("#minutes .minutes_body .speaker")
 
 def parse_speeches(url: str):
     soup = get_soup(url)
     session, session_type, meeting_no = parse_header_title(soup)
     date_text = parse_date_only(soup)
 
-    # 안건 그룹 추출
     groups, speakers = _extract_agenda_groups(soup)
 
-    # 구간화: 각 그룹은 [start, next_start-1] 범위를 가짐
     ranges = []
     for idx, g in enumerate(groups):
         start = g["start_order"]
@@ -254,7 +250,6 @@ def parse_speeches(url: str):
 
     rows = []
     for order, spk in enumerate(speakers, start=1):
-        # data_mem_id 안정 추출
         data_mem_id = ""
         for key in ("data-mem_id", "data_mem_id", "data-mem-id"):
             if spk.has_attr(key):
@@ -271,7 +266,6 @@ def parse_speeches(url: str):
 
         speech = get_text_with_br(spk.select_one(".talk .txt"))
 
-        # 이 발언이 속한 안건 그룹 찾기
         ag_orders = ag_titles = ag_times = ""
         for start, end, g in ranges:
             if start <= order <= end:
@@ -290,57 +284,83 @@ def parse_speeches(url: str):
             "speaker_position": position,
             "speaker_area": area,
             "data_mem_id": data_mem_id,
-            "agenda_item_orders": ag_orders,   # 새 필드
-            "agenda_item_titles": ag_titles,   # 새 필드
-            "agenda_item_times": ag_times,     # 새 필드
+            "agenda_item_orders": ag_orders,
+            "agenda_item_titles": ag_titles,
+            "agenda_item_times": ag_times,
             "speech_text": speech,
         })
-    return rows
+    return rows, (session, meeting_no)
+
+# ----------------- 저장 헬퍼 -----------------
+def safe_name(s: str) -> str:
+    """파일/폴더명 안전화"""
+    s = s.replace("/", "_").replace("\\", "_").replace(":", "_")
+    s = s.replace("?", "").replace("*", "").replace('"', "").replace("<", "").replace(">", "").replace("|", "")
+    return s.strip()
+
+def ensure_dir(p: str):
+    os.makedirs(p, exist_ok=True)
 
 # ----------------- 실행 -----------------
-def run(urls,
-        out_header_csv="minutes_header_summary.csv",
-        out_speech_csv="minutes_speeches.csv"):
-    header_all, speech_all = [], []
-
+def run_all(urls, base_outdir=BASE_OUTDIR):
     if not urls:
-        print("DETAIL_URLS 가 비어 있습니다. URL을 1개 이상 추가하세요.")
-        pd.DataFrame(columns=[
+        print("DETAIL_URLS 가 비어 있습니다.")
+        return
+
+    total_header, total_speech = 0, 0
+
+    for u in urls:
+        print(f"\n==== Parse: {u} ====")
+        # 1) 헤더
+        header_rows, key1 = [], (None, "")
+        try:
+            h_rows, key1 = parse_header(u)
+            header_rows.extend(h_rows)
+        except Exception as e:
+            print("  [ERROR] header:", e)
+
+        # 2) 본문(발언+안건)
+        speech_rows, key2 = [], (None, "")
+        try:
+            s_rows, key2 = parse_speeches(u)
+            speech_rows.extend(s_rows)
+        except Exception as e:
+            print("  [ERROR] speeches:", e)
+
+        # session / meeting_no 결정 (둘 중 하나라도 성공한 쪽 기준)
+        session = key1[0] if key1[0] is not None else key2[0]
+        meeting_no = key1[1] if key1[1] else key2[1]
+
+        # session/meeting_no 없으면 id로 폴백
+        if session is None: session = "unknown"
+        if not meeting_no:  meeting_no = "unknown"
+
+        # 회차 폴더 및 파일 경로
+        session_dir = os.path.join(base_outdir, f"제{session}회")
+        ensure_dir(session_dir)
+
+        fname_prefix = safe_name(meeting_no)  # 예: "제1차" 또는 "제1호"
+        path_header  = os.path.join(session_dir, f"{fname_prefix}_minutes_header_summary.csv")
+        path_speech  = os.path.join(session_dir, f"{fname_prefix}_minutes_speeches.csv")
+
+        # 저장 (항상 파일 생성)
+        pd.DataFrame(header_rows, columns=[
             "session","session_type","meeting_no","date","section","item_order","item_text"
-        ]).to_csv(out_header_csv, index=False, encoding="utf-8-sig")
-        pd.DataFrame(columns=[
+        ]).to_csv(path_header, index=False, encoding="utf-8-sig")
+
+        pd.DataFrame(speech_rows, columns=[
             "session","session_type","meeting_no","date","speech_order",
             "speaker_name","speaker_position","speaker_area","data_mem_id",
             "agenda_item_orders","agenda_item_titles","agenda_item_times","speech_text"
-        ]).to_csv(out_speech_csv, index=False, encoding="utf-8-sig")
-        print(f"빈 CSV를 생성했습니다: {out_header_csv}, {out_speech_csv}")
-        return
+        ]).to_csv(path_speech, index=False, encoding="utf-8-sig")
 
-    for u in urls:
-        try:
-            log(f"\n=== Parse header: {u}")
-            header_all.extend(parse_header(u))
-            time.sleep(SLEEP_SEC)
+        print(f"  -> Saved: {path_header} (rows={len(header_rows)})")
+        print(f"  -> Saved: {path_speech} (rows={len(speech_rows)})")
+        total_header += len(header_rows)
+        total_speech += len(speech_rows)
+        time.sleep(SLEEP_SEC)
 
-            log(f"=== Parse speeches(+agenda): {u}")
-            speech_all.extend(parse_speeches(u))
-            time.sleep(SLEEP_SEC)
-        except Exception as e:
-            print("[ERROR]", u, e)
-
-    # 항상 CSV 생성
-    pd.DataFrame(header_all, columns=[
-        "session","session_type","meeting_no","date","section","item_order","item_text"
-    ]).to_csv(out_header_csv, index=False, encoding="utf-8-sig")
-
-    pd.DataFrame(speech_all, columns=[
-        "session","session_type","meeting_no","date","speech_order",
-        "speaker_name","speaker_position","speaker_area","data_mem_id",
-        "agenda_item_orders","agenda_item_titles","agenda_item_times","speech_text"
-    ]).to_csv(out_speech_csv, index=False, encoding="utf-8-sig")
-
-    print(f"\nSaved: {out_header_csv} (rows={len(header_all)})")
-    print(f"Saved: {out_speech_csv} (rows={len(speech_all)})")
+    print(f"\n[완료] 총 헤더행 {total_header} / 발언행 {total_speech} 저장, 폴더 루트 = {os.path.abspath(base_outdir)}")
 
 if __name__ == "__main__":
-    run(DETAIL_URLS)
+    run_all(DETAIL_URLS)
