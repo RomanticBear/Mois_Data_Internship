@@ -40,9 +40,9 @@ class PartyDataProcessor:
         }
         
         # 원본 데이터 경로
-        self.source_path = "minutes_output"
+        self.source_path = "data/original"
         # 정당 정보가 추가된 데이터 저장 경로
-        self.target_path = "minutes_output_with_party"
+        self.target_path = "data/with_party"
     
     def add_party_to_speeches(self, df):
         """발언 데이터에 정당 정보 추가"""

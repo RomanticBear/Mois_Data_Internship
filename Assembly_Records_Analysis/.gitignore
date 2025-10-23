@@ -1,6 +1,8 @@
 # 원본 데이터 (크기가 크므로 제외)
-minutes_output/
-minutes_output_with_party/
+data/
+analysis_scripts/
+analysis_results/
+README.md
 
 
 # 분석 결과 파일들 (자동 생성되는 파일들)
@@ -10,7 +12,7 @@ minutes_output_with_party/
 *.gif
 *.pdf
 *.csv
-!minutes_output_with_party/**/*.csv
+!data/with_party/**/*.csv
 
 # Python 분석 스크립트들 (개발 중인 파일들)
 final_analysis_415.py
