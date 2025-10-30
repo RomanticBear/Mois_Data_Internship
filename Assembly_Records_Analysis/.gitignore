@@ -10,9 +10,9 @@ README.md
 *.jpg
 *.jpeg
 *.gif
-*.pdf
 *.csv
 !data/with_party/**/*.csv
+!presentation_materials/*.pdf
 
 # Python 분석 스크립트들 (개발 중인 파일들)
 final_analysis_415.py
