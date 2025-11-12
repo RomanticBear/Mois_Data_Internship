@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제415회 국회 회의록 인터랙티브 분석</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        select, input {
+            padding: 8px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .party-filter {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .party-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .party-checkbox:hover {
+            background: #f0f0f0;
+        }
+
+        .party-checkbox input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .tooltip {
+            position: absolute;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 5px;
+            pointer-events: none;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .network-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        .node {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .node:hover {
+            stroke-width: 3px;
+        }
+
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+            stroke-width: 2px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>제415회 국회 회의록 인터랙티브 분석</h1>
+            <p class="subtitle">OpenAI 기반 심층 분석 및 시각화 대시보드</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-speeches">-</div>
+                <div class="stat-label">총 발언 수</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="quality-speeches">-</div>
+                <div class="stat-label">품질 발언 수</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="key-issues-count">-</div>
+                <div class="stat-label">핵심 이슈</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="qa-pairs">-</div>
+                <div class="stat-label">질의-응답 쌍</div>
+            </div>
+        </div>
+
+        <!-- 핵심 이슈 중요도 -->
+        <div class="section">
+            <h2 class="section-title">핵심 이슈 중요도</h2>
+            <div class="chart-container">
+                <div id="key-issues-chart"></div>
+            </div>
+        </div>
+
+        <!-- 정당별 입장 비교 -->
+        <div class="section">
+            <h2 class="section-title">정당별 주요 관심사</h2>
+            <div class="controls">
+                <div class="party-filter" id="party-filter"></div>
+            </div>
+            <div class="chart-container">
+                <div id="party-concerns-chart"></div>
+            </div>
+        </div>
+
+        <!-- 질의-응답 품질 분석 -->
+        <div class="section">
+            <h2 class="section-title">질의-응답 효과성 분석</h2>
+            <div class="chart-container">
+                <div id="qa-quality-chart"></div>
+            </div>
+        </div>
+
+        <!-- 안건별 정당 입장 히트맵 -->
+        <div class="section">
+            <h2 class="section-title">안건별 정당 입장 히트맵</h2>
+            <div class="chart-container">
+                <div id="party-position-heatmap"></div>
+            </div>
+        </div>
+
+        <!-- 정당 간 네트워크 그래프 -->
+        <div class="section">
+            <h2 class="section-title">정당 간 관계 네트워크</h2>
+            <div class="chart-container">
+                <div class="network-container" id="party-network"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
