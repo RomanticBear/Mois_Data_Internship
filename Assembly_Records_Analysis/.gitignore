@@ -37,3 +37,7 @@ __pycache__/
 
 # 로그 파일들
 *.log
+
+# 환경 변수 파일
+.env
+.env.local
