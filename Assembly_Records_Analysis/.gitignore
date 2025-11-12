@@ -1,8 +1,8 @@
 # 원본 데이터 (크기가 크므로 제외)
-data/
-analysis_results/
-documentation/
-README.md
+/data/
+/analysis_results/
+/documentation/
+/README.md
 
 
 # 분석 결과 파일들 (자동 생성되는 파일들)
