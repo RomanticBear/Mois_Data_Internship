@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
+from datetime import datetime
 from typing import Iterable, List, Mapping, Optional, Sequence
 
 from .models import (
@@ -48,9 +49,23 @@ class OpenAISessionAnalyzer:
         prompt = self._build_session_summary_prompt(session_name, session_payload)
 
         response_json = self._invoke_llm(prompt)
+        
+        # meeting_date를 datetime으로 변환
+        parsed_meeting_date = None
+        if meeting_date:
+            try:
+                # ISO 형식 문자열을 datetime으로 변환
+                if isinstance(meeting_date, str):
+                    parsed_meeting_date = datetime.fromisoformat(meeting_date.replace("Z", "+00:00"))
+                elif isinstance(meeting_date, datetime):
+                    parsed_meeting_date = meeting_date
+            except (ValueError, AttributeError):
+                # 파싱 실패 시 None 유지
+                parsed_meeting_date = None
+        
         summary = SessionSummary(
             session_name=response_json.get("session_name", session_name),
-            meeting_date=None,
+            meeting_date=parsed_meeting_date,
             key_issues=response_json.get("key_issues", []),
             overall_sentiment=response_json.get("overall_sentiment"),
             raw_summary=response_json.get("session_characteristics"),
@@ -60,8 +75,6 @@ class OpenAISessionAnalyzer:
                 "key_events": response_json.get("key_events"),
             },
         )
-        if meeting_date:
-            summary.metadata["meeting_date"] = meeting_date
         summary.metadata["raw_llm_response"] = response_json
         return summary
 
