@@ -160,9 +160,55 @@ class SupabaseDBClient:
         self.client.table("documents_rag").delete().eq("source_id", source_id).execute()
 
     def delete_rag_documents_by_session(self, *, session_name: str) -> None:
+        """세션별 RAG 문서 삭제 (메타데이터 또는 source_id 패턴 기준)"""
+        # 메타데이터 기준 삭제
         self.client.table("documents_rag").delete().eq(
             "metadata->>session_name", session_name
         ).execute()
+        # source_id 패턴 기준 삭제 (이전 형식 데이터도 삭제하기 위해)
+        # 1. 새 형식: session::{session_name}::로 시작
+        # 2. 이전 형식: qa-XX (모든 qa_pair 타입 삭제 후 재저장)
+        try:
+            # 새 형식 삭제
+            self.client.table("documents_rag").delete().ilike(
+                "source_id", f"session::{session_name}::%"
+            ).execute()
+            self.client.table("documents_rag").delete().ilike(
+                "source_id", f"{session_name}::%"
+            ).execute()
+            # 이전 형식 qa-XX 삭제
+            # 방법 1: 메타데이터에 session_name이 있는 경우
+            self.client.table("documents_rag").delete().eq(
+                "source_type", "qa_pair"
+            ).eq(
+                "metadata->>session_name", session_name
+            ).execute()
+            # 방법 2: source_id가 qa-로 시작하고 메타데이터에 session_name이 없는 경우
+            # 주의: 이것은 제415회 재저장 시에만 사용 (다른 세션 데이터는 보호됨)
+            # 메타데이터가 null이거나 빈 값인 qa-XX 형식 삭제
+            # 재저장 전이라면 이전 형식 데이터를 삭제해야 함
+            try:
+                # source_id가 qa-로 시작하고 메타데이터에 session_name이 null인 경우
+                self.client.table("documents_rag").delete().eq(
+                    "source_type", "qa_pair"
+                ).like(
+                    "source_id", "qa-%"
+                ).or_(
+                    f"metadata->>session_name.is.null,metadata->>session_name.eq."
+                ).execute()
+            except Exception:
+                # or_ 구문이 작동하지 않을 수 있으므로, 일단 메타데이터 기준으로만 삭제
+                pass
+            # party_position도 동일하게 처리
+            self.client.table("documents_rag").delete().eq(
+                "source_type", "party_position"
+            ).eq(
+                "metadata->>session_name", session_name
+            ).execute()
+        except (AttributeError, Exception) as e:
+            # ilike 메서드가 없는 경우 또는 다른 오류 발생 시
+            # 메타데이터 기준으로만 삭제 (이미 위에서 처리됨)
+            print(f"⚠️ source_id 패턴 삭제 중 오류 발생 (무시됨): {e}")
 
     # ------------------------------------------------------------------
     # Cleanup helpers

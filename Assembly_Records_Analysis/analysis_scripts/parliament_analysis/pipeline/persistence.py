@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
+from datetime import datetime
 from typing import Any, Dict, Iterable, List, Sequence
 from uuid import uuid4
 
@@ -138,8 +139,12 @@ def persist_analysis_to_supabase(
         session_record["summary_text"] = summary_text
     if summary_embedding:
         session_record["summary_embedding"] = summary_embedding
-    if session_summary and session_summary.metadata.get("meeting_date"):
-        session_record["meeting_date"] = session_summary.metadata["meeting_date"]
+    if session_summary and session_summary.meeting_date:
+        # datetime을 date 문자열로 변환 (YYYY-MM-DD 형식)
+        if isinstance(session_summary.meeting_date, datetime):
+            session_record["meeting_date"] = session_summary.meeting_date.date().isoformat()
+        else:
+            session_record["meeting_date"] = session_summary.meeting_date
 
     session_row = db_client.upsert_session_record(session_record)
     session_id = session_row["session_id"]
@@ -228,6 +233,7 @@ def persist_analysis_to_supabase(
         db_client.upsert_qa_interactions(qa_rows)
 
     # RAG documents
+    # 기존 세션 데이터는 이미 위에서 삭제됨 (159줄)
     vector_items: List[VectorItem] = []
 
     if session_summary:
