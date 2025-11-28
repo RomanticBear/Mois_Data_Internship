@@ -324,7 +324,7 @@ def create_enhanced_visualizations(results, speeches_df):
     print("\n향상된 시각화 생성 중...")
     
     # 결과 폴더 생성
-    os.makedirs('analysis_results', exist_ok=True)
+    os.makedirs('outputs/analysis_results', exist_ok=True)
     
     party_analysis = results['party_analysis']
     
@@ -369,7 +369,7 @@ def create_enhanced_visualizations(results, speeches_df):
             fig.delaxes(axes[i])
         
         plt.tight_layout()
-        plt.savefig('analysis_results/02_enhanced_party_keywords.png', dpi=300, bbox_inches='tight')
+        plt.savefig('outputs/analysis_results/02_enhanced_party_keywords.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     # 2. 정당별 토픽 시각화
@@ -407,7 +407,7 @@ def create_enhanced_visualizations(results, speeches_df):
             fig.delaxes(axes[i])
         
         plt.tight_layout()
-        plt.savefig('analysis_results/02_enhanced_party_topics.png', dpi=300, bbox_inches='tight')
+        plt.savefig('outputs/analysis_results/02_enhanced_party_topics.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     # 3. 정당별 감정 분석
@@ -425,7 +425,7 @@ def create_enhanced_visualizations(results, speeches_df):
         plt.xlabel('정당', fontsize=12)
         plt.ylabel('감정', fontsize=12)
         plt.tight_layout()
-        plt.savefig('analysis_results/02_enhanced_party_sentiment.png', dpi=300, bbox_inches='tight')
+        plt.savefig('outputs/analysis_results/02_enhanced_party_sentiment.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     # 4. 정당별 대화 패턴 분석
@@ -472,7 +472,7 @@ def create_enhanced_visualizations(results, speeches_df):
         axes[1, 1].tick_params(axis='x', rotation=45)
         
         plt.tight_layout()
-        plt.savefig('analysis_results/02_enhanced_party_patterns.png', dpi=300, bbox_inches='tight')
+        plt.savefig('outputs/analysis_results/02_enhanced_party_patterns.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     print("향상된 시각화 완료!")
@@ -482,7 +482,7 @@ def generate_enhanced_report(results, speeches_df):
     print("\n향상된 분석 보고서 생성 중...")
     
     # 보고서 폴더 생성
-    os.makedirs('analysis_reports', exist_ok=True)
+    os.makedirs('outputs/analysis_reports', exist_ok=True)
     
     party_analysis = results['party_analysis']
     
@@ -602,7 +602,7 @@ def generate_enhanced_report(results, speeches_df):
 """
     
     # 보고서 저장
-    with open('analysis_reports/02_enhanced_party_analysis_report.md', 'w', encoding='utf-8') as f:
+    with open('outputs/analysis_reports/02_enhanced_party_analysis_report.md', 'w', encoding='utf-8') as f:
         f.write(report_content)
     
     print("향상된 분석 보고서 생성 완료!")
@@ -635,11 +635,11 @@ def main():
     print("2단계 향상된 분석 완료!")
     print("=" * 60)
     print("생성된 파일:")
-    print("- analysis_results/02_enhanced_party_keywords.png")
-    print("- analysis_results/02_enhanced_party_topics.png")
-    print("- analysis_results/02_enhanced_party_sentiment.png")
-    print("- analysis_results/02_enhanced_party_patterns.png")
-    print("- analysis_reports/02_enhanced_party_analysis_report.md")
+    print("- outputs/analysis_results/02_enhanced_party_keywords.png")
+    print("- outputs/analysis_results/02_enhanced_party_topics.png")
+    print("- outputs/analysis_results/02_enhanced_party_sentiment.png")
+    print("- outputs/analysis_results/02_enhanced_party_patterns.png")
+    print("- outputs/analysis_reports/02_enhanced_party_analysis_report.md")
 
 if __name__ == "__main__":
     main()

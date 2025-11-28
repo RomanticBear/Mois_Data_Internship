@@ -368,7 +368,7 @@ def create_advanced_visualizations(results, speeches_df):
     print("\n고급 시각화 생성 중...")
     
     # 결과 폴더 생성
-    os.makedirs('analysis_results', exist_ok=True)
+    os.makedirs('outputs/analysis_results', exist_ok=True)
     
     # 1. TF-IDF 키워드 워드클라우드
     if 'tfidf_keywords' in results and results['tfidf_keywords']:
@@ -387,7 +387,7 @@ def create_advanced_visualizations(results, speeches_df):
             plt.axis('off')
             plt.title('TF-IDF 기반 주요 키워드', fontsize=16, fontweight='bold')
             plt.tight_layout()
-            plt.savefig('analysis_results/04_tfidf_wordcloud.png', dpi=300, bbox_inches='tight')
+            plt.savefig('outputs/analysis_results/04_tfidf_wordcloud.png', dpi=300, bbox_inches='tight')
             plt.close()
         except Exception as e:
             print(f"워드클라우드 생성 실패: {e}")
@@ -415,7 +415,7 @@ def create_advanced_visualizations(results, speeches_df):
             fig.delaxes(axes[i])
         
         plt.tight_layout()
-        plt.savefig('analysis_results/04_lda_topics.png', dpi=300, bbox_inches='tight')
+        plt.savefig('outputs/analysis_results/04_lda_topics.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     # 3. 감정 분석 결과
@@ -435,7 +435,7 @@ def create_advanced_visualizations(results, speeches_df):
         plt.title('전체 감정 분석 결과', fontsize=16, fontweight='bold')
         plt.axis('equal')
         plt.tight_layout()
-        plt.savefig('analysis_results/04_sentiment_analysis.png', dpi=300, bbox_inches='tight')
+        plt.savefig('outputs/analysis_results/04_sentiment_analysis.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     # 4. 정당별 감정 분석
@@ -455,7 +455,7 @@ def create_advanced_visualizations(results, speeches_df):
         plt.xlabel('정당', fontsize=12)
         plt.ylabel('감정', fontsize=12)
         plt.tight_layout()
-        plt.savefig('analysis_results/04_party_sentiment_heatmap.png', dpi=300, bbox_inches='tight')
+        plt.savefig('outputs/analysis_results/04_party_sentiment_heatmap.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     # 5. 시간별 감정 변화
@@ -492,7 +492,7 @@ def create_advanced_visualizations(results, speeches_df):
             plt.xticks(rotation=45)
             plt.legend(title='감정')
             plt.tight_layout()
-            plt.savefig('analysis_results/04_monthly_sentiment_trends.png', dpi=300, bbox_inches='tight')
+            plt.savefig('outputs/analysis_results/04_monthly_sentiment_trends.png', dpi=300, bbox_inches='tight')
             plt.close()
     
     print("고급 시각화 완료!")
@@ -502,7 +502,7 @@ def generate_advanced_report(results, speeches_df):
     print("\n고급 분석 보고서 생성 중...")
     
     # 보고서 폴더 생성
-    os.makedirs('analysis_reports', exist_ok=True)
+    os.makedirs('outputs/analysis_reports', exist_ok=True)
     
     report_content = f"""# 고급 토픽 분석 보고서
 
@@ -646,7 +646,7 @@ def generate_advanced_report(results, speeches_df):
 """
     
     # 보고서 저장
-    with open('analysis_reports/04_advanced_topic_analysis_report.md', 'w', encoding='utf-8') as f:
+    with open('outputs/analysis_reports/04_advanced_topic_analysis_report.md', 'w', encoding='utf-8') as f:
         f.write(report_content)
     
     print("고급 분석 보고서 생성 완료!")
@@ -683,12 +683,12 @@ def main():
     print("4단계 고급 분석 완료!")
     print("=" * 60)
     print("생성된 파일:")
-    print("- analysis_results/04_tfidf_wordcloud.png")
-    print("- analysis_results/04_lda_topics.png")
-    print("- analysis_results/04_sentiment_analysis.png")
-    print("- analysis_results/04_party_sentiment_heatmap.png")
-    print("- analysis_results/04_monthly_sentiment_trends.png")
-    print("- analysis_reports/04_advanced_topic_analysis_report.md")
+    print("- outputs/analysis_results/04_tfidf_wordcloud.png")
+    print("- outputs/analysis_results/04_lda_topics.png")
+    print("- outputs/analysis_results/04_sentiment_analysis.png")
+    print("- outputs/analysis_results/04_party_sentiment_heatmap.png")
+    print("- outputs/analysis_results/04_monthly_sentiment_trends.png")
+    print("- outputs/analysis_reports/04_advanced_topic_analysis_report.md")
 
 if __name__ == "__main__":
     main()

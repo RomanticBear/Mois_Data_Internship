@@ -248,7 +248,7 @@ def create_comprehensive_visualizations(trend_data, area_totals, area_keywords):
     print("\n📊 종합 시각화 생성 중...")
     
     # 결과 디렉토리 생성
-    os.makedirs('analysis_results', exist_ok=True)
+    os.makedirs('outputs/analysis_results', exist_ok=True)
     
     # 1. 정책 영역별 발언 수 히트맵
     plt.figure(figsize=(15, 10))
@@ -270,7 +270,7 @@ def create_comprehensive_visualizations(trend_data, area_totals, area_keywords):
     plt.yticks(rotation=0)
     
     plt.tight_layout()
-    plt.savefig('analysis_results/01_policy_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.savefig('outputs/analysis_results/01_policy_heatmap.png', dpi=300, bbox_inches='tight')
     plt.show()
     
     # 2. 정책 영역별 변화 추이
@@ -290,7 +290,7 @@ def create_comprehensive_visualizations(trend_data, area_totals, area_keywords):
     plt.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig('analysis_results/01_policy_trends.png', dpi=300, bbox_inches='tight')
+    plt.savefig('outputs/analysis_results/01_policy_trends.png', dpi=300, bbox_inches='tight')
     plt.show()
     
     # 3. 정책 영역별 총 발언 수
@@ -303,11 +303,11 @@ def create_comprehensive_visualizations(trend_data, area_totals, area_keywords):
     plt.ylabel('정책 영역', fontsize=12)
     
     plt.tight_layout()
-    plt.savefig('analysis_results/01_policy_totals.png', dpi=300, bbox_inches='tight')
+    plt.savefig('outputs/analysis_results/01_policy_totals.png', dpi=300, bbox_inches='tight')
     plt.show()
     
     
-    print("📊 종합 시각화 완료: analysis_results/01_policy_*.png")
+    print("📊 종합 시각화 완료: outputs/analysis_results/01_policy_*.png")
 
 def generate_insights(trend_data, area_totals, area_keywords):
     """인사이트 생성"""

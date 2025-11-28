@@ -210,7 +210,7 @@ def create_party_topic_visualizations(party_topic_analysis):
     print("\n정당별 토픽 시각화 생성 중...")
     
     # 결과 폴더 생성
-    os.makedirs('analysis_results', exist_ok=True)
+    os.makedirs('outputs/analysis_results', exist_ok=True)
     
     # 1. 정당별 토픽 점수 히트맵
     parties = list(party_topic_analysis.keys())
@@ -241,7 +241,7 @@ def create_party_topic_visualizations(party_topic_analysis):
     plt.xticks(rotation=45, ha='right')
     plt.yticks(rotation=0)
     plt.tight_layout()
-    plt.savefig('analysis_results/02_party_topic_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.savefig('outputs/analysis_results/02_party_topic_heatmap.png', dpi=300, bbox_inches='tight')
     plt.close()
     
     # 2. 정당별 상위 3개 토픽 막대 그래프
@@ -275,7 +275,7 @@ def create_party_topic_visualizations(party_topic_analysis):
         fig.delaxes(axes[i])
     
     plt.tight_layout()
-    plt.savefig('analysis_results/02_party_top_topics.png', dpi=300, bbox_inches='tight')
+    plt.savefig('outputs/analysis_results/02_party_top_topics.png', dpi=300, bbox_inches='tight')
     plt.close()
     
     # 3. 토픽별 정당 분포
@@ -319,7 +319,7 @@ def create_party_topic_visualizations(party_topic_analysis):
         fig.delaxes(axes[i])
     
     plt.tight_layout()
-    plt.savefig('analysis_results/02_topic_party_distribution.png', dpi=300, bbox_inches='tight')
+    plt.savefig('outputs/analysis_results/02_topic_party_distribution.png', dpi=300, bbox_inches='tight')
     plt.close()
     
     print("정당별 토픽 시각화 완료!")
@@ -329,7 +329,7 @@ def generate_party_topic_report(party_topic_analysis):
     print("\n정당별 토픽 분석 보고서 생성 중...")
     
     # 보고서 폴더 생성
-    os.makedirs('analysis_reports', exist_ok=True)
+    os.makedirs('outputs/analysis_reports', exist_ok=True)
     
     report_content = f"""# 정당별 토픽 분석 보고서
 
@@ -470,7 +470,7 @@ def generate_party_topic_report(party_topic_analysis):
 """
     
     # 보고서 저장
-    with open('analysis_reports/02_party_topic_analysis_report.md', 'w', encoding='utf-8') as f:
+    with open('outputs/analysis_reports/02_party_topic_analysis_report.md', 'w', encoding='utf-8') as f:
         f.write(report_content)
     
     print("정당별 토픽 분석 보고서 생성 완료!")
@@ -503,10 +503,10 @@ def main():
     print("2단계 분석 완료!")
     print("=" * 60)
     print("생성된 파일:")
-    print("- analysis_results/02_party_topic_heatmap.png")
-    print("- analysis_results/02_party_top_topics.png") 
-    print("- analysis_results/02_topic_party_distribution.png")
-    print("- analysis_reports/02_party_topic_analysis_report.md")
+    print("- outputs/analysis_results/02_party_topic_heatmap.png")
+    print("- outputs/analysis_results/02_party_top_topics.png") 
+    print("- outputs/analysis_results/02_topic_party_distribution.png")
+    print("- outputs/analysis_reports/02_party_topic_analysis_report.md")
 
 if __name__ == "__main__":
     main()
