@@ -3,13 +3,15 @@
 - ask_question(): 질문을 받아서 벡터 DB에서 관련 문서를 검색하고 답변 생성
 - RAGRetriever를 사용하여 관련 문서 검색
 - OpenAI LLM을 사용하여 컨텍스트 기반 답변 생성
+- Rate limit 및 429 오류 처리 포함
 """
 
 from __future__ import annotations
 
+import time
 from typing import Any, Dict, List, Optional
 
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
 from .retriever import RAGRetriever
 
@@ -24,11 +26,54 @@ class RAGQASystem:
         llm_client: OpenAI,
         model: str = "gpt-4o-mini",
         temperature: float = 0.3,
+        max_retries: int = 3,
+        base_delay: float = 1.0,
+        request_delay: float = 0.2,  # 요청 간 최소 딜레이 (초)
     ) -> None:
         self.retriever = retriever
         self.llm_client = llm_client
         self.model = model
         self.temperature = temperature
+        self.max_retries = max_retries
+        self.base_delay = base_delay
+        self.request_delay = request_delay
+        self.last_request_time = 0.0
+
+    def _wait_for_rate_limit(self):
+        """Rate limit 방지를 위한 요청 간 딜레이"""
+        current_time = time.time()
+        time_since_last_request = current_time - self.last_request_time
+        if time_since_last_request < self.request_delay:
+            time.sleep(self.request_delay - time_since_last_request)
+        self.last_request_time = time.time()
+
+    def _retry_with_backoff(self, func, *args, **kwargs):
+        """Exponential backoff를 사용한 재시도 로직"""
+        for attempt in range(self.max_retries):
+            try:
+                self._wait_for_rate_limit()
+                return func(*args, **kwargs)
+            except RateLimitError as e:
+                if attempt == self.max_retries - 1:
+                    raise
+                
+                # Exponential backoff: 1초, 2초, 4초...
+                delay = self.base_delay * (2 ** attempt)
+                
+                # 429 오류 메시지에서 retry-after 정보 확인
+                if hasattr(e, 'response') and e.response is not None:
+                    retry_after = e.response.headers.get('retry-after')
+                    if retry_after:
+                        try:
+                            delay = float(retry_after)
+                        except ValueError:
+                            pass
+                
+                print(f"⚠️  Rate limit 초과 (시도 {attempt + 1}/{self.max_retries}). {delay:.1f}초 후 재시도...")
+                time.sleep(delay)
+            except Exception as e:
+                # Rate limit이 아닌 다른 오류는 즉시 재발생
+                raise
 
     def ask_question(
         self,
@@ -126,22 +171,25 @@ class RAGQASystem:
         prompt = self._build_qa_prompt(question, context)
         
         print(f"🤖 LLM으로 답변 생성 중...")
-        response = self.llm_client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "당신은 국회 회의록 분석 전문가입니다. "
-                        "제공된 컨텍스트를 기반으로 정확하고 구체적인 답변을 제공합니다. "
-                        "컨텍스트에 없는 내용은 추측하지 마세요."
-                    ),
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=self.temperature,
-        )
         
+        def _call_llm():
+            return self.llm_client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "당신은 국회 회의록 분석 전문가입니다. "
+                            "제공된 컨텍스트를 기반으로 정확하고 구체적인 답변을 제공합니다. "
+                            "컨텍스트에 없는 내용은 추측하지 마세요."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=self.temperature,
+            )
+        
+        response = self._retry_with_backoff(_call_llm)
         answer = response.choices[0].message.content
         
         result = {
