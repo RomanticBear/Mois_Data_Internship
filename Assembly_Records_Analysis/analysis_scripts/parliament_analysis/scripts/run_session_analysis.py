@@ -17,13 +17,13 @@ import pandas as pd
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from .data.db_client import SupabaseDBClient
-from .data.embedding_client import EmbeddingClient
-from .pipeline.utils import generate_analysis_version
-from .pipeline.workflow import SessionAnalysisWorkflow
-from .pipeline.persistence import persist_analysis_to_supabase
-from .rag.chunker import RAGChunker
-from .rag.vector_store import VectorStore
+from ..data.db_client import SupabaseDBClient
+from ..data.embedding_client import EmbeddingClient
+from ..pipeline.utils import generate_analysis_version
+from ..pipeline.workflow import SessionAnalysisWorkflow
+from ..pipeline.persistence import persist_analysis_to_supabase
+from ..rag.chunker import RAGChunker
+from ..rag.vector_store import VectorStore
 
 warnings.filterwarnings("ignore")
 
@@ -59,7 +59,7 @@ def create_visualizations(results: Dict[str, Any], session_name: str) -> None:
     """분석 결과 시각화."""
     print("\n📊 시각화 생성 중...")
 
-    output_dir = "analysis_results"
+    output_dir = "outputs/analysis_results"
     os.makedirs(output_dir, exist_ok=True)
 
     summary = results.get("session_summary")
@@ -218,7 +218,7 @@ def main(session_name: str = "제415회") -> None:
     if qa_metrics:
         results["qa_analysis"] = asdict(qa_metrics)
 
-    output_dir = "analysis_results"
+    output_dir = "outputs/analysis_results"
     os.makedirs(output_dir, exist_ok=True)
     json_path = os.path.join(output_dir, f"{session_name}_openai_analysis.json")
     with open(json_path, "w", encoding="utf-8") as f:
