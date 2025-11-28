@@ -1,22 +1,6 @@
-# 원본 데이터 (크기가 크므로 제외)
+# 데이터 및 결과물 폴더 (크기가 크고 자동 생성되므로 제외)
 /data/
-/analysis_results/
-/documentation/
-/README.md
-
-
-# 분석 결과 파일들 (자동 생성되는 파일들)
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.csv
-!data/with_party/**/*.csv
-!presentation_materials/*.pdf
-
-# Python 분석 스크립트들 (개발 중인 파일들)
-final_analysis_415.py
-party_analysis_415.py
+/outputs/
 
 # 임시 파일들
 *.tmp
@@ -41,3 +25,7 @@ __pycache__/
 # 환경 변수 파일
 .env
 .env.local
+
+# 문서 파일 (내부 참고용)
+**/DASHBOARD_RAG_DIVISION.md
+**/RAG_CHATBOT_DIRECTION.md
