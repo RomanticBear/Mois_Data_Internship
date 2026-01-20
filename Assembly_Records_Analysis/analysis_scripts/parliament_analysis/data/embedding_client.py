@@ -130,26 +130,43 @@ class EmbeddingClient:
         """Return a single embedding vector with retry logic."""
         def _call_api():
             return self.openai_client.embeddings.create(
-                model=self.model,
-                input=text,
-            )
+            model=self.model,
+            input=text,
+        )
         
         response = self._retry_with_backoff(_call_api)
         return response.data[0].embedding
 
-    def embed_texts(self, texts: Sequence[str]) -> List[List[float]]:
-        """Batch embedding helper with retry logic."""
+    def embed_texts(self, texts: Sequence[str], batch_size: int = 100) -> List[List[float]]:
+        """Batch embedding helper with retry logic.
+        
+        Args:
+            texts: 텍스트 리스트
+            batch_size: 한 번에 처리할 텍스트 수 (토큰 제한 방지)
+        """
         if not texts:
             return []
         
-        def _call_api():
-            return self.openai_client.embeddings.create(
-                model=self.model,
-                input=list(texts),
-            )
+        # 배치로 나누어 처리 (토큰 제한 방지)
+        all_embeddings = []
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            
+            def _call_api():
+                return self.openai_client.embeddings.create(
+                    model=self.model,
+                    input=list(batch),
+                )
+            
+            response = self._retry_with_backoff(_call_api)
+            batch_embeddings = [item.embedding for item in response.data]
+            all_embeddings.extend(batch_embeddings)
+            
+            # 진행 상황 출력 (큰 배치의 경우)
+            if len(texts) > 200:
+                print(f"    임베딩 진행: {min(i + batch_size, len(texts))}/{len(texts)}")
         
-        response = self._retry_with_backoff(_call_api)
-        return [item.embedding for item in response.data]
+        return all_embeddings
 
     def embed_documents(self, documents: Iterable[dict]) -> List[dict]:
         """Attach embeddings to document payloads (mutates copies)."""

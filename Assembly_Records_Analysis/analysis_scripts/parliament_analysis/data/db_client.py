@@ -153,8 +153,24 @@ class SupabaseDBClient:
     def upsert_rag_documents(self, documents: Iterable[Dict[str, Any]]) -> None:
         payload = self.ensure_serializable_items(documents)
         if not payload:
+            print("  ⚠️  직렬화된 payload가 비어있습니다.")
             return
-        self.client.table("documents_rag").upsert(payload).execute()
+        
+        print(f"  💾 documents_rag 테이블에 {len(payload)}개 문서 저장 중...")
+        try:
+            # 배치로 나누어 저장 (Supabase 제한 고려)
+            batch_size = 100
+            for i in range(0, len(payload), batch_size):
+                batch = payload[i:i + batch_size]
+                self.client.table("documents_rag").upsert(batch).execute()
+                if (i // batch_size + 1) % 10 == 0:
+                    print(f"    진행 중... {i + len(batch)}/{len(payload)}개 저장됨")
+            print(f"  ✅ documents_rag 테이블 저장 완료: {len(payload)}개")
+        except Exception as e:
+            print(f"  ❌ documents_rag 저장 중 오류: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def delete_rag_documents_by_source(self, *, source_id: str) -> None:
         self.client.table("documents_rag").delete().eq("source_id", source_id).execute()
@@ -246,14 +262,33 @@ class SupabaseDBClient:
     @staticmethod
     def ensure_serializable_items(items: Iterable[Any]) -> List[Dict[str, Any]]:
         """Normalize dataclasses or dict-like objects to plain dicts."""
+        import math
+        import json
+        
+        def clean_value(val):
+            """NaN, Inf 값을 None 또는 0으로 변환"""
+            if isinstance(val, float):
+                if math.isnan(val) or math.isinf(val):
+                    return 0.0
+            elif isinstance(val, list):
+                return [clean_value(v) for v in val]
+            elif isinstance(val, dict):
+                return {k: clean_value(v) for k, v in val.items()}
+            return val
+        
         serialized: List[Dict[str, Any]] = []
         for item in items:
             if hasattr(item, "__dataclass_fields__"):
-                serialized.append(asdict(item))
+                item_dict = asdict(item)
             elif isinstance(item, dict):
-                serialized.append(item)
+                item_dict = item
             else:
                 raise TypeError(f"Unsupported payload type: {type(item)!r}")
+            
+            # NaN/Inf 값 정리
+            cleaned_dict = clean_value(item_dict)
+            serialized.append(cleaned_dict)
+        
         return serialized
 
 
