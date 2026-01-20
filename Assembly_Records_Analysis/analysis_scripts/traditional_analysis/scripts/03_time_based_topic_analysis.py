@@ -29,8 +29,8 @@ def load_data():
     # 모든 회의록 데이터 로드
     all_speeches = []
     
-    # data/with_party 폴더의 모든 회의록 데이터 수집
-    minutes_dir = "data/with_party"
+    # data/제oo회/ 폴더의 모든 회의록 데이터 수집
+    minutes_dir = "../../data"
     if not os.path.exists(minutes_dir):
         print(f"경고: {minutes_dir} 폴더를 찾을 수 없습니다.")
         return None
@@ -344,7 +344,7 @@ def create_time_visualizations(time_analysis):
             fig.delaxes(axes[i])
         
         plt.tight_layout()
-        plt.savefig('outputs/analysis_results/03_session_topic_trends.png', dpi=300, bbox_inches='tight')
+        plt.savefig('../outputs/analysis_results/03_session_topic_trends.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     # 2. 월별 정책 토픽 트렌드 (전체)
@@ -369,7 +369,7 @@ def create_time_visualizations(time_analysis):
         ax.grid(True, alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig('outputs/analysis_results/03_monthly_topic_trends.png', dpi=300, bbox_inches='tight')
+        plt.savefig('../outputs/analysis_results/03_monthly_topic_trends.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     # 3. 정당별 월별 주요 토픽 변화
@@ -425,7 +425,7 @@ def create_time_visualizations(time_analysis):
             fig.delaxes(axes[i])
         
         plt.tight_layout()
-        plt.savefig('outputs/analysis_results/03_party_monthly_trends.png', dpi=300, bbox_inches='tight')
+        plt.savefig('../outputs/analysis_results/03_party_monthly_trends.png', dpi=300, bbox_inches='tight')
         plt.close()
     
     print("시간별 변화 시각화 완료!")
@@ -435,7 +435,7 @@ def generate_time_report(time_analysis):
     print("\n시간별 변화 분석 보고서 생성 중...")
     
     # 보고서 폴더 생성
-    os.makedirs('outputs/analysis_reports', exist_ok=True)
+    os.makedirs('../outputs/analysis_reports', exist_ok=True)
     
     session_analysis = time_analysis['session_analysis']
     monthly_analysis = time_analysis['monthly_analysis']
@@ -590,7 +590,7 @@ def generate_time_report(time_analysis):
 """
     
     # 보고서 저장
-    with open('outputs/analysis_reports/03_time_based_topic_analysis_report.md', 'w', encoding='utf-8') as f:
+    with open('../outputs/analysis_reports/03_time_based_topic_analysis_report.md', 'w', encoding='utf-8') as f:
         f.write(report_content)
     
     print("시간별 변화 분석 보고서 생성 완료!")
@@ -623,9 +623,9 @@ def main():
     print("3단계 분석 완료!")
     print("=" * 60)
     print("생성된 파일:")
-    print("- outputs/analysis_results/03_session_topic_trends.png")
-    print("- outputs/analysis_results/03_monthly_topic_trends.png")
-    print("- outputs/analysis_results/03_party_monthly_trends.png")
+    print("- ../outputs/analysis_results/03_session_topic_trends.png")
+    print("- ../outputs/analysis_results/03_monthly_topic_trends.png")
+    print("- ../outputs/analysis_results/03_party_monthly_trends.png")
     print("- outputs/analysis_reports/03_time_based_topic_analysis_report.md")
 
 if __name__ == "__main__":
