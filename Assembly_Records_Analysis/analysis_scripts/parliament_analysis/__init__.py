@@ -1,5 +1,4 @@
 """Parliament-focused analysis package."""
 
-from .scripts.run_session_analysis import main
-
-__all__ = ["main"]
+# 순환 참조 방지를 위해 lazy import
+__all__ = []
