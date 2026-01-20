@@ -1,0 +1,136 @@
+
+======================================================================
+📊 국회 회의록 데이터 수집
+======================================================================
+
+[단계 1] API 호출 중... (대수: 22, 연도: 2024, 2025)
+  ✓ 2024년: 1444개 수집
+  ✓ 2025년: 1743개 수집
+  ✅ 총 3187개 회의록 수집 완료
+
+[단계 2] 회차 분류 중...
+  ✓ 발견된 회차: 15개
+    - 제415회: 21개
+    - 제416회: 21개
+    - 제417회: 4개
+    - 제418회: 915개
+    - 제419회: 132개
+    - 제420회: 352개
+    - 제421회: 1개
+    - 제422회: 316개
+    - 제423회: 3개
+    - 제424회: 22개
+    - 제425회: 5개
+    - 제426회: 365개
+    - 제427회: 182개
+    - 제428회: 112개
+    - 제429회: 736개
+
+[단계 3] 데이터 처리 시작...
+
+  📁 제420회: 4개 회의록 처리 중...
+    [4/4] 처리 완료... (성공: 4, 실패: 0)
+  ✓ 제420회 완료: 성공 4개, 실패 0개
+
+  📁 제419회: 2개 회의록 처리 중...
+    [2/2] 처리 완료... (성공: 2, 실패: 0)
+  ✓ 제419회 완료: 성공 2개, 실패 0개
+
+  📁 제418회: 24개 회의록 처리 중...
+    [10/24] 처리 완료... (성공: 10, 실패: 0)
+    [20/24] 처리 완료... (성공: 20, 실패: 0)
+    [24/24] 처리 완료... (성공: 24, 실패: 0)
+  ✓ 제418회 완료: 성공 24개, 실패 0개
+
+  📁 제417회: 2개 회의록 처리 중...
+  ❌ request error: 500 Server Error: Internal Server Error for url: https://record.assembly.go.kr/assembly/viewer/minutes/xml.do?id=52206&type=view
+    [2/2] 처리 완료... (성공: 1, 실패: 1)
+  ✓ 제417회 완료: 성공 1개, 실패 1개
+
+  📁 제416회: 6개 회의록 처리 중...
+    [6/6] 처리 완료... (성공: 6, 실패: 0)
+  ✓ 제416회 완료: 성공 6개, 실패 0개
+
+  📁 제415회: 3개 회의록 처리 중...
+  ❌ request error: 500 Server Error: Internal Server Error for url: https://record.assembly.go.kr/assembly/viewer/minutes/xml.do?id=52082&type=view
+    [3/3] 처리 완료... (성공: 2, 실패: 1)
+  ✓ 제415회 완료: 성공 2개, 실패 1개
+
+  📁 제429회: 27개 회의록 처리 중...
+    [10/27] 처리 완료... (성공: 10, 실패: 0)
+    [20/27] 처리 완료... (성공: 20, 실패: 0)
+    [27/27] 처리 완료... (성공: 27, 실패: 0)
+  ✓ 제429회 완료: 성공 27개, 실패 0개
+
+  📁 제428회: 2개 회의록 처리 중...
+    [2/2] 처리 완료... (성공: 2, 실패: 0)
+  ✓ 제428회 완료: 성공 2개, 실패 0개
+
+  📁 제427회: 5개 회의록 처리 중...
+    [5/5] 처리 완료... (성공: 5, 실패: 0)
+  ✓ 제427회 완료: 성공 5개, 실패 0개
+
+  📁 제426회: 3개 회의록 처리 중...
+  ❌ request error: ('Connection aborted.', ConnectionResetError(10054, '현재 연결은 원격 호스트에 의해 강제로 끊겼습니다', None, 10054, None))
+    [3/3] 처리 중... (실패: 1)
+  ✓ 제426회 완료: 성공 2개, 실패 1개
+
+  📁 제425회: 1개 회의록 처리 중...
+  ❌ request error: ('Connection aborted.', ConnectionResetError(10054, '현재 연결은 원격 호스트에 의해 강제로 끊겼습니다', None, 10054, None))
+    [1/1] 처리 중... (실패: 1)
+  ✓ 제425회 완료: 성공 0개, 실패 1개
+
+  📁 제424회: 5개 회의록 처리 중...
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=54615&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDA4F2C0>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=54614&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDA4EE10>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=54613&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDA4D0A0>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=54603&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDB6AF60>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=54593&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EE097DA00>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+    [5/5] 처리 중... (실패: 5)
+  ✓ 제424회 완료: 성공 0개, 실패 5개
+
+  📁 제422회: 5개 회의록 처리 중...
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=54447&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDA4F500>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=52729&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDA4C890>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=52728&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDA4CF20>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=52727&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDA4E990>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=52726&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EE097E8D0>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+    [5/5] 처리 중... (실패: 5)
+  ✓ 제422회 완료: 성공 0개, 실패 5개
+
+  📁 제423회: 1개 회의록 처리 중...
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=52770&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDA4E0F0>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+    [1/1] 처리 중... (실패: 1)
+  ✓ 제423회 완료: 성공 0개, 실패 1개
+
+  📁 제421회: 1개 회의록 처리 중...
+  ❌ request error: HTTPSConnectionPool(host='record.assembly.go.kr', port=443): Max retries exceeded with url: /assembly/viewer/minutes/xml.do?id=52687&type=view (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000015EDDA4FF80>: Failed to resolve 'record.assembly.go.kr' ([Errno 11001] getaddrinfo failed)"))
+    [1/1] 처리 중... (실패: 1)
+  ✓ 제421회 완료: 성공 0개, 실패 1개
+
+======================================================================
+✅ 수집 완료
+======================================================================
+  총 처리 회차: 15개
+  총 성공: 75개
+  총 실패: 16개
+  저장 위치: C:\Users\RomanticBear\OneDrive\사진\바탕 화면\Mois_Data_Internship\Assembly_Records_Analysis\collected_data
+
+  생성된 회차 폴더: 15개
+    - 제415회: 3개 회의록
+    - 제416회: 6개 회의록
+    - 제417회: 2개 회의록
+    - 제418회: 13개 회의록
+    - 제419회: 1개 회의록
+    - 제420회: 2개 회의록
+    - 제421회: 1개 회의록
+    - 제422회: 3개 회의록
+    - 제423회: 1개 회의록
+    - 제424회: 2개 회의록
+    - 제425회: 1개 회의록
+    - 제426회: 3개 회의록
+    - 제427회: 3개 회의록
+    - 제428회: 1개 회의록
+    - 제429회: 16개 회의록
+
+======================================================================
