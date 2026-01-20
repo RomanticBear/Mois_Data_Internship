@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>국회 회의록 질의응답 시스템</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo">국</div>
+                <div>
+                    <h1>국회 회의록 질의응답 시스템</h1>
+                    <p>RAG 기반 질문-답변 시스템</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="session-selector">
+            <label for="sessionSelect">회차 선택:</label>
+            <select id="sessionSelect">
+                <option value="">전체</option>
+            </select>
+        </div>
+
+        <div class="chat-container" id="chat-container">
+            <div class="message bot-message">
+                <div class="message-content">
+                    안녕하세요. 국회 회의록 질의응답 시스템입니다. 궁금하신 내용을 질문해주세요.
+                </div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <input 
+                type="text" 
+                id="questionInput" 
+                placeholder="질문을 입력하세요..."
+                autocomplete="off"
+            >
+            <button id="sendButton">전송</button>
+        </div>
+
+        <footer>
+            중간 보고용 데모 버전
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
