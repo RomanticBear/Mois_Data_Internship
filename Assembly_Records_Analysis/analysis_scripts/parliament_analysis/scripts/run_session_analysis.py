@@ -166,13 +166,25 @@ def create_visualizations(results: Dict[str, Any], session_name: str) -> None:
     print(f"📊 시각화 완료: analysis_results/{session_name}_*.png")
 
 
-def main(session_name: str = "제415회") -> None:
+def main(session_name: str = "제415회", *, force: bool = False) -> None:
     """메인 실행 함수."""
     print("=" * 60)
     print(f"{session_name} 국회 회의록 OpenAI 심층 분석")
     print("=" * 60)
 
+    # 중복 분석 방지 체크
     openai_client = create_openai_client()
+    supabase_clients = ensure_supabase_clients(openai_client)
+    if supabase_clients:
+        db_client, _, _, _ = supabase_clients
+        existing_session = db_client.get_session_record(session_name)
+        if existing_session and not force:
+            print(f"\n✅ {session_name}는 이미 분석되어 있습니다.")
+            print(f"   분석 버전: {existing_session.get('analysis_version')}")
+            print(f"   Hash: {existing_session.get('hash_digest', '')[:16]}...")
+            print(f"   스킵합니다. (강제 재분석: --force 옵션 사용)\n")
+            return
+
     workflow = SessionAnalysisWorkflow(openai_client=openai_client)
 
     print(f"📊 {session_name} 데이터 로딩 중...")
@@ -201,8 +213,22 @@ def main(session_name: str = "제415회") -> None:
     print("\n" + "=" * 60)
     print("1단계: 회차별 핵심 이슈 요약")
     print("=" * 60)
-    summary_payload = workflow.prepare_session_summary_payload(quality_df)
-    session_summary = workflow.run_session_summary(session_name, payload=summary_payload)
+    
+    # QA 쌍 추출 (정량 통계 계산용)
+    qa_pairs = workflow.prepare_qa_pairs(quality_df, session_name)
+    
+    # DB 클라이언트 가져오기 (이전 회차 조회용)
+    db_client_for_summary = None
+    supabase_clients = ensure_supabase_clients(openai_client)
+    if supabase_clients:
+        db_client_for_summary, _, _, _ = supabase_clients
+    
+    summary_payload = workflow.prepare_session_summary_payload(quality_df, qa_pairs=qa_pairs)
+    session_summary = workflow.run_session_summary(
+        session_name, 
+        payload=summary_payload,
+        db_client=db_client_for_summary,
+    )
     if session_summary:
         results["session_summary"] = asdict(session_summary)
 
@@ -211,7 +237,7 @@ def main(session_name: str = "제415회") -> None:
     if party_analyses:
         results["party_positions"] = [asdict(analysis) for analysis in party_analyses]
 
-    qa_pairs = workflow.prepare_qa_pairs(quality_df, session_name)
+    # qa_pairs는 이미 위에서 추출됨
     if not qa_pairs:
         print("  ⚠️ 질의-응답 쌍을 찾을 수 없습니다.")
     qa_metrics = workflow.run_qa_analysis(session_name, qa_pairs=qa_pairs)
@@ -274,5 +300,11 @@ def main(session_name: str = "제415회") -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    import argparse
+    parser = argparse.ArgumentParser(description="세션 분석 실행")
+    parser.add_argument("session_name", nargs="?", default="제415회", help="분석할 회차")
+    parser.add_argument("--force", action="store_true", help="강제 재분석")
+    args = parser.parse_args()
+    main(args.session_name, force=args.force)
 
