@@ -26,7 +26,7 @@ from ..data.embedding_client import EmbeddingClient
 from ..rag.chunker import RAGChunker
 from ..rag.vector_store import VectorItem, VectorStore
 
-
+# PartyPosition 객체를 DB 저장용 딕셔너리로 변환
 def party_position_to_row(
     position: PartyPosition,
     agenda_id: str,
@@ -61,7 +61,7 @@ def party_position_to_row(
         row["stance_embedding"] = stance_embedding
     return row
 
-
+# 정당 입장 Payload 생성
 def build_party_position_payload(
     analysis: AgendaPartyAnalysis,
     agenda_id: str,
@@ -70,7 +70,7 @@ def build_party_position_payload(
     for position in analysis.party_positions:
         yield party_position_to_row(position, agenda_id, embedding_client)
 
-
+# 문서를 VectorItem으로 변환
 def _documents_to_vector_items(documents: Iterable[Dict[str, Any]]) -> List[VectorItem]:
     items: List[VectorItem] = []
     for doc in documents:
@@ -86,7 +86,7 @@ def _documents_to_vector_items(documents: Iterable[Dict[str, Any]]) -> List[Vect
         )
     return items
 
-
+# 메인 저장 함수 - 모든 분석 결과를 Supabase에 저장
 def persist_analysis_to_supabase(
     *,
     session_name: str,
@@ -236,33 +236,94 @@ def persist_analysis_to_supabase(
     # 기존 세션 데이터는 이미 위에서 삭제됨 (159줄)
     vector_items: List[VectorItem] = []
 
+    # 1. Session Summary (party_positions_overview 포함)
     if session_summary:
+        print("  📝 Session Summary 청킹 중...")
         summary_docs = chunker.chunk_session_summary(
             asdict_no_embedding(session_summary),
             session_name=session_name,
         )
         vector_items.extend(_documents_to_vector_items(summary_docs))
+        print(f"    ✅ {len(summary_docs)}개 청크 생성")
 
-    party_docs = chunker.chunk_party_positions(
-        [
-            asdict_no_embedding(position)
-            for analysis in party_analyses
-            for position in analysis.party_positions
-        ],
-        agenda_id_lookup=agenda_lookup,
-        session_name=session_name,
-    )
-    vector_items.extend(_documents_to_vector_items(party_docs))
-
-    qa_docs = list(
-        chunker.chunk_qa_pairs(
-            qa_pairs,
+    # 2. Party Positions
+    if party_analyses:
+        print("  📝 Party Positions 청킹 중...")
+        party_docs = chunker.chunk_party_positions(
+            [
+                asdict_no_embedding(position)
+                for analysis in party_analyses
+                for position in analysis.party_positions
+            ],
             agenda_id_lookup=agenda_lookup,
             session_name=session_name,
         )
-    )
-    vector_items.extend(_documents_to_vector_items(qa_docs))
-    vector_store.upsert_documents(vector_items)
+        vector_items.extend(_documents_to_vector_items(party_docs))
+        print(f"    ✅ {len(party_docs)}개 청크 생성")
+
+    # 3. Agenda Analysis (합의점/대립점)
+    if party_analyses:
+        print("  📝 Agenda Analysis 청킹 중...")
+        agenda_count = 0
+        for analysis in party_analyses:
+            agenda_docs = chunker.chunk_agenda_analysis(
+                asdict_no_embedding(analysis),
+                agenda_id_lookup=agenda_lookup,
+                session_name=session_name,
+            )
+            vector_items.extend(_documents_to_vector_items(agenda_docs))
+            agenda_count += len(agenda_docs)
+        print(f"    ✅ {agenda_count}개 청크 생성")
+
+    # 4. QA Pairs
+    if qa_pairs:
+        print("  📝 QA Pairs 청킹 중...")
+        qa_docs = list(
+            chunker.chunk_qa_pairs(
+                qa_pairs,
+                agenda_id_lookup=agenda_lookup,
+                session_name=session_name,
+            )
+        )
+        vector_items.extend(_documents_to_vector_items(qa_docs))
+        print(f"    ✅ {len(qa_docs)}개 청크 생성")
+
+    # 5. QA Metrics - 신규 추가
+    if qa_metrics:
+        print("  📝 QA Metrics 청킹 중...")
+        qa_metrics_docs = chunker.chunk_qa_metrics(
+            asdict_no_embedding(qa_metrics),
+            session_name=session_name,
+        )
+        vector_items.extend(_documents_to_vector_items(qa_metrics_docs))
+        print(f"    ✅ {len(qa_metrics_docs)}개 청크 생성")
+
+    # 6. Original Speeches (하이브리드 검색용) - 신규 추가
+    if quality_df is not None and len(quality_df) > 0:
+        try:
+            speech_docs = chunker.chunk_original_speeches(
+                quality_df,
+                session_name=session_name,
+                min_importance=0.3,
+                max_speeches=100,  # 중요도 높은 발언 100개만
+            )
+            vector_items.extend(_documents_to_vector_items(speech_docs))
+            print(f"  ✅ 원본 발언 {len(speech_docs)}개 청크 추가")
+        except Exception as e:
+            print(f"  ⚠️  원본 발언 임베딩 실패: {e}")
+            import traceback
+            traceback.print_exc()
+
+    # RAG 문서 저장
+    print(f"\n💾 RAG 문서 저장 중... (총 {len(vector_items)}개)")
+    try:
+        vector_store.upsert_documents(vector_items)
+        print(f"✅ RAG 문서 저장 완료: {len(vector_items)}개")
+    except Exception as e:
+        print(f"❌ RAG 문서 저장 실패: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 def asdict_no_embedding(obj: Any) -> Dict[str, Any]:
