@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>국회회의록 RAG 챗봇</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>국회회의록 RAG 챗봇</h1>
+            <p class="subtitle">최근 회의를 이해하고, 다음 회의를 준비해주는 AI</p>
+        </header>
+
+        <main>
+            <!-- 사이드바: 회의록 목록 및 필터 -->
+            <aside class="sidebar">
+                <section class="upload-section">
+                    <h2>회의록 업로드</h2>
+                    <input type="file" id="fileInput" accept=".pdf" />
+                    <button id="uploadBtn" class="btn btn-primary">업로드</button>
+                </section>
+
+                <section class="filter-section">
+                    <h2>필터</h2>
+                    <div class="filter-group">
+                        <label for="committeeFilter">위원회:</label>
+                        <select id="committeeFilter">
+                            <option value="">전체</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="assemblyFilter">국회 회차:</label>
+                        <select id="assemblyFilter">
+                            <option value="">전체</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>
+                            <input type="checkbox" id="activeOnlyFilter" checked />
+                            Active Window만 보기
+                        </label>
+                    </div>
+                    <button id="refreshBtn" class="btn btn-secondary">목록 새로고침</button>
+                </section>
+
+                <section class="meetings-section">
+                    <h2>회의록 목록</h2>
+                    <div id="meetingsList" class="meetings-list">
+                        <!-- 동적으로 로드됨 -->
+                    </div>
+                </section>
+            </aside>
+
+            <!-- 메인 콘텐츠: 질문 및 답변 -->
+            <div class="main-content">
+                <section class="question-section">
+                    <h2>질문하기</h2>
+                    <div class="question-templates">
+                        <button class="template-btn" data-template="summary">회의 요약</button>
+                        <button class="template-btn" data-template="issue">주요 쟁점 정리</button>
+                        <button class="template-btn" data-template="speaker">발언자별 발언 정리</button>
+                        <button class="template-btn" data-template="material">자료제출요구 목록</button>
+                        <button class="template-btn" data-template="next">다음 회의 준비 포인트</button>
+                    </div>
+                    <div class="question-input">
+                        <textarea id="questionInput" placeholder="질문을 입력하세요..."></textarea>
+                        <div class="question-options">
+                            <label>
+                                <input type="checkbox" id="includeInactive" />
+                                비활성 문서 포함
+                            </label>
+                            <button id="submitBtn" class="btn btn-primary">질문 제출</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="answer-section">
+                    <h2>답변</h2>
+                    <div id="answerArea" class="answer-area">
+                        <p class="placeholder">질문을 입력하고 제출 버튼을 클릭하세요.</p>
+                    </div>
+                    <div id="sourcesArea" class="sources-area" style="display: none;">
+                        <h3>근거 문서</h3>
+                        <div id="sourcesList"></div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer>
+            <p>Assembly Meeting RAG v0.1.0</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+
+
+
