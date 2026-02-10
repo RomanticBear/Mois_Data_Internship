@@ -3,102 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>국회회의록 RAG 챗봇</title>
-    <link rel="stylesheet" href="style.css">
+    <title>국회회의록 AI 인사이트</title>
+    <link id="app-style" rel="stylesheet" href="/static/style.css" onerror="this.onerror=null;this.href='./style.css';">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>국회회의록 RAG 챗봇</h1>
-            <p class="subtitle">최근 회의를 이해하고, 다음 회의를 준비해주는 AI</p>
-        </header>
-
-        <main>
-            <!-- 사이드바: 회의록 목록 및 필터 -->
-            <aside class="sidebar">
-                <section class="upload-section">
-                    <h2>회의록 업로드</h2>
-                    <input type="file" id="fileInput" accept=".pdf" />
-                    <button id="uploadBtn" class="btn btn-primary">업로드</button>
-                </section>
-
-                <section class="filter-section">
-                    <h2>필터</h2>
-                    <div class="filter-group">
-                        <label for="committeeFilter">위원회:</label>
-                        <select id="committeeFilter">
-                            <option value="">전체</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="assemblyFilter">국회 회차:</label>
-                        <select id="assemblyFilter">
-                            <option value="">전체</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>
-                            <input type="checkbox" id="activeOnlyFilter" checked />
-                            Active Window만 보기
-                        </label>
-                    </div>
-                    <button id="refreshBtn" class="btn btn-secondary">목록 새로고침</button>
-                </section>
-
-                <section class="meetings-section">
-                    <h2>회의록 목록</h2>
-                    <div id="meetingsList" class="meetings-list">
-                        <!-- 동적으로 로드됨 -->
-                    </div>
-                </section>
-            </aside>
-
-            <!-- 메인 콘텐츠: 질문 및 답변 -->
-            <div class="main-content">
-                <section class="question-section">
-                    <h2>질문하기</h2>
-                    <div class="question-templates">
-                        <button class="template-btn" data-template="summary">회의 요약</button>
-                        <button class="template-btn" data-template="issue">주요 쟁점 정리</button>
-                        <button class="template-btn" data-template="speaker">발언자별 발언 정리</button>
-                        <button class="template-btn" data-template="material">자료제출요구 목록</button>
-                        <button class="template-btn" data-template="next">다음 회의 준비 포인트</button>
-                    </div>
-                    <div class="question-input">
-                        <textarea id="questionInput" placeholder="질문을 입력하세요..."></textarea>
-                        <div class="question-options">
-                            <label>
-                                <input type="checkbox" id="includeInactive" />
-                                비활성 문서 포함
-                            </label>
-                            <button id="submitBtn" class="btn btn-primary">질문 제출</button>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="answer-section">
-                    <h2>답변</h2>
-                    <div id="answerArea" class="answer-area">
-                        <p class="placeholder">질문을 입력하고 제출 버튼을 클릭하세요.</p>
-                    </div>
-                    <div id="sourcesArea" class="sources-area" style="display: none;">
-                        <h3>근거 문서</h3>
-                        <div id="sourcesList"></div>
-                    </div>
-                </section>
+    <header class="top">
+        <div class="top-inner">
+            <div class="brand">
+                <span class="brand-mark">AI</span>
+                <div>
+                    <h1 class="title">국회회의록 인사이트</h1>
+                    <p class="tagline">최근 회의를 이해하고, 다음 회의를 준비합니다</p>
+                </div>
             </div>
-        </main>
+            <div class="top-meta">
+                <div class="stat">
+                    <span class="stat-label">등록 문서</span>
+                    <strong id="totalDocs" class="stat-value">0</strong>
+                </div>
+                <button type="button" class="btn btn-ghost" id="refreshBtn">데이터 새로고침</button>
+            </div>
+        </div>
+    </header>
 
-        <footer>
-            <p>Assembly Meeting RAG v0.1.0</p>
-        </footer>
+    <div class="screen">
+        <aside class="col col-docs">
+            <section class="card card-docs">
+                <div class="card-head">
+                    <h2 class="card-h">회의록 현황</h2>
+                    <span class="card-sub">검색 대상과 보관 문서를 확인하세요</span>
+                </div>
+                <div class="filters">
+                    <label class="filter-item">
+                        <span class="filter-lbl">국회 회차</span>
+                        <select id="assemblyFilter" class="filter-sel">
+                            <option value="">전체</option>
+                        </select>
+                    </label>
+                    <label class="filter-item">
+                        <span class="filter-lbl">위원회</span>
+                        <select id="committeeFilter" class="filter-sel">
+                            <option value="">전체</option>
+                        </select>
+                    </label>
+                    <label class="filter-check">
+                        <input type="checkbox" id="activeOnlyFilter" checked>
+                        <span>최근 문서만 보기</span>
+                    </label>
+                </div>
+
+                <div class="list-head">
+                    <span>회의록 목록</span>
+                    <span class="list-count" id="meetingsCount">0</span>
+                </div>
+                <div class="meetings-list" id="meetingsList">
+                    <p class="list-empty">등록된 회의록이 없습니다.</p>
+                </div>
+            </section>
+        </aside>
+
+        <main class="col col-main">
+            <section class="card card-ask">
+                <div class="card-head">
+                    <h2 class="card-h">질문하기</h2>
+                    <span class="card-sub">템플릿을 선택하거나 직접 입력하세요</span>
+                </div>
+                <div class="pill-row">
+                    <button type="button" class="pill" data-template="summary">회의 요약</button>
+                    <button type="button" class="pill" data-template="issue">주요 쟁점</button>
+                    <button type="button" class="pill" data-template="speaker">발언자별 정리</button>
+                    <button type="button" class="pill" data-template="material">자료요구 목록</button>
+                    <button type="button" class="pill" data-template="next">다음 회의 준비</button>
+                </div>
+                <textarea id="questionInput" class="ask-input" rows="4" placeholder="질문을 입력하세요. 예: 최근 회의에서 논의된 주요 쟁점은 무엇인가요?"></textarea>
+                <div class="ask-bar">
+                    <label class="ask-check">
+                        <input type="checkbox" id="includeInactive">
+                        <span>전체 문서에서 검색</span>
+                    </label>
+                    <button type="button" class="btn btn-main" id="submitBtn">질문 제출</button>
+                </div>
+            </section>
+
+            <section class="card card-answer">
+                <div class="card-head">
+                    <h2 class="card-h">답변</h2>
+                    <span class="card-sub">검색 근거와 함께 결과를 제공합니다</span>
+                </div>
+                <div id="answerArea" class="answer-box">
+                    <p class="answer-empty">질문을 입력한 뒤 제출 버튼을 누르세요.</p>
+                </div>
+                <div id="sourcesArea" class="sources-box" hidden>
+                    <h3 class="sources-h">근거 문서</h3>
+                    <div id="sourcesList" class="sources-list"></div>
+                </div>
+            </section>
+        </main>
     </div>
 
-    <script src="script.js"></script>
+    <footer class="bottom">
+        <p>국회회의록 AI 인사이트 · OpenAI File Search 기반</p>
+    </footer>
+
+    <div class="overlay" id="loadingOverlay" hidden aria-live="polite">
+        <div class="spinner"></div>
+        <p>처리 중입니다. 잠시만 기다려주세요.</p>
+    </div>
+
+    <script src="/static/script.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='./script.js';document.body.appendChild(s);"></script>
 </body>
 </html>
-
-
-
-
-

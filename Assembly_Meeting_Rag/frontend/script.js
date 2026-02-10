@@ -1,254 +1,248 @@
-// API 기본 URL
-const API_BASE_URL = 'http://localhost:8001/api';
+/* 국회회의록 AI 인사이트 - 프론트 로직 */
 
-// 질문 템플릿
-const questionTemplates = {
-    summary: "최근 회의의 주요 내용을 요약해주세요.",
-    issue: "최근 회의에서 논의된 주요 쟁점들을 정리해주세요.",
-    speaker: "발언자별로 주요 발언 내용을 정리해주세요.",
-    material: "회의 중 요구된 자료제출요구 사항을 정리해주세요.",
-    next: "다음 회의를 준비하기 위한 포인트를 정리해주세요."
+const API_BASE = (() => {
+    if (typeof window === 'undefined' || !window.location) return '/api';
+    const { protocol, hostname, port, origin } = window.location;
+    const apiHost = hostname === 'localhost' ? '127.0.0.1' : hostname;
+    const apiOrigin = port && port !== '8000' ? `${protocol}//${apiHost}:8000` : origin;
+    return apiOrigin + '/api';
+})();
+
+const TEMPLATES = {
+    summary: '최근 회의의 주요 내용을 요약해주세요.',
+    issue: '최근 회의에서 논의된 주요 쟁점들을 정리해주세요.',
+    speaker: '발언자별로 주요 발언 내용을 정리해주세요.',
+    material: '회의 중 요구된 자료제출요구 사항을 정리해주세요.',
+    next: '다음 회의를 준비하기 위한 포인트를 정리해주세요.'
 };
 
-// 질문 유형 매핑
-const questionTypeMap = {
-    summary: "summary",
-    issue: "issue",
-    speaker: "speaker",
-    material: "material_request",
-    next: "next_meeting_prep"
-};
+let currentMeetings = [];
 
-// 페이지 로드 시 초기화
+function $(id) {
+    return document.getElementById(id);
+}
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+/* 초기화 */
 document.addEventListener('DOMContentLoaded', () => {
-    initializeEventListeners();
+    bindEvents();
+    loadStats();
     loadMeetings();
 });
 
-// 이벤트 리스너 초기화
-function initializeEventListeners() {
-    // 업로드 버튼
-    document.getElementById('uploadBtn').addEventListener('click', handleUpload);
-    
-    // 질문 제출 버튼
-    document.getElementById('submitBtn').addEventListener('click', handleQuery);
-    
-    // 템플릿 버튼들
-    document.querySelectorAll('.template-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const template = e.target.dataset.template;
-            if (questionTemplates[template]) {
-                document.getElementById('questionInput').value = questionTemplates[template];
+function bindEvents() {
+    $('submitBtn').addEventListener('click', handleQuery);
+    $('questionInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleQuery();
+        }
+    });
+
+    document.querySelectorAll('.pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const t = btn.getAttribute('data-template');
+            if (TEMPLATES[t]) {
+                $('questionInput').value = TEMPLATES[t];
+                $('questionInput').focus();
             }
         });
     });
-    
-    // 필터 변경
-    document.getElementById('committeeFilter').addEventListener('change', loadMeetings);
-    document.getElementById('assemblyFilter').addEventListener('change', loadMeetings);
-    document.getElementById('activeOnlyFilter').addEventListener('change', loadMeetings);
-    document.getElementById('refreshBtn').addEventListener('click', loadMeetings);
-}
 
-// 회의록 목록 로드
-async function loadMeetings() {
-    try {
-        const isActive = document.getElementById('activeOnlyFilter').checked;
-        const committee = document.getElementById('committeeFilter').value;
-        const assembly = document.getElementById('assemblyFilter').value;
-        
-        let url = `${API_BASE_URL}/meetings?`;
-        if (isActive !== null) url += `is_active=${isActive}&`;
-        if (committee) url += `committee=${encodeURIComponent(committee)}&`;
-        if (assembly) url += `assembly_number=${encodeURIComponent(assembly)}&`;
-        
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('회의록 목록 로드 실패');
-        
-        const meetings = await response.json();
-        displayMeetings(meetings);
-        updateFilters(meetings);
-        
-    } catch (error) {
-        console.error('Error loading meetings:', error);
-        document.getElementById('meetingsList').innerHTML = 
-            '<p style="color: red;">회의록 목록을 불러올 수 없습니다.</p>';
-    }
-}
-
-// 회의록 목록 표시
-function displayMeetings(meetings) {
-    const listElement = document.getElementById('meetingsList');
-    
-    if (meetings.length === 0) {
-        listElement.innerHTML = '<p style="color: #999;">등록된 회의록이 없습니다.</p>';
-        return;
-    }
-    
-    listElement.innerHTML = meetings.map(meeting => `
-        <div class="meeting-item ${meeting.is_active ? 'active' : ''}" 
-             data-id="${meeting.id}">
-            <h3>${meeting.committee}</h3>
-            <p>${meeting.assembly_number} ${meeting.session_type}</p>
-            <p>${meeting.date} - ${meeting.meeting_number}차</p>
-            <p style="font-size: 0.75em; margin-top: 5px;">
-                ${meeting.is_active ? '✓ Active' : '✗ Inactive'}
-            </p>
-        </div>
-    `).join('');
-}
-
-// 필터 옵션 업데이트
-function updateFilters(meetings) {
-    const committees = [...new Set(meetings.map(m => m.committee))];
-    const assemblies = [...new Set(meetings.map(m => m.assembly_number))];
-    
-    const committeeFilter = document.getElementById('committeeFilter');
-    const currentCommittee = committeeFilter.value;
-    committeeFilter.innerHTML = '<option value="">전체</option>' + 
-        committees.map(c => `<option value="${c}">${c}</option>`).join('');
-    if (committees.includes(currentCommittee)) {
-        committeeFilter.value = currentCommittee;
-    }
-    
-    const assemblyFilter = document.getElementById('assemblyFilter');
-    const currentAssembly = assemblyFilter.value;
-    assemblyFilter.innerHTML = '<option value="">전체</option>' + 
-        assemblies.map(a => `<option value="${a}">${a}</option>`).join('');
-    if (assemblies.includes(currentAssembly)) {
-        assemblyFilter.value = currentAssembly;
-    }
-}
-
-// 파일 업로드 처리
-async function handleUpload() {
-    const fileInput = document.getElementById('fileInput');
-    const file = fileInput.files[0];
-    
-    if (!file) {
-        alert('파일을 선택해주세요.');
-        return;
-    }
-    
-    if (!file.name.endsWith('.pdf') && !file.name.endsWith('.PDF')) {
-        alert('PDF 파일만 업로드 가능합니다.');
-        return;
-    }
-    
-    const uploadBtn = document.getElementById('uploadBtn');
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = '업로드 중...';
-    
-    try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        // 간단한 파싱 (실제로는 더 정교한 파싱 필요)
-        // 파일명에서 정보 추출: "제22대국회 제415회(임시회) 제1차 행정안전위원회(전체회의) (2024.06.13.) (2).PDF"
-        // TODO: 더 정교한 파싱 로직 구현
-        
-        const response = await fetch(`${API_BASE_URL}/upload`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || '업로드 실패');
-        }
-        
-        const result = await response.json();
-        alert('업로드 완료!');
-        fileInput.value = '';
+    $('committeeFilter').addEventListener('change', loadMeetings);
+    $('assemblyFilter').addEventListener('change', loadMeetings);
+    $('activeOnlyFilter').addEventListener('change', loadMeetings);
+    $('refreshBtn').addEventListener('click', () => {
+        loadStats();
         loadMeetings();
-        
-    } catch (error) {
-        console.error('Upload error:', error);
-        alert(`업로드 실패: ${error.message}`);
-    } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = '업로드';
+    });
+}
+
+/* 통계: 등록 문서 수만 표시 */
+async function loadStats() {
+    try {
+        const res = await fetch(API_BASE + '/stats');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        $('totalDocs').textContent = Number(data.total_documents) || 0;
+    } catch (e) {
+        $('totalDocs').textContent = '0';
     }
 }
 
-// 질문 처리
+/* 회의록 목록 */
+async function loadMeetings() {
+    const activeOnly = $('activeOnlyFilter').checked;
+    const committee = ($('committeeFilter').value || '').trim();
+    const assembly = ($('assemblyFilter').value || '').trim();
+
+    const params = new URLSearchParams();
+    if (activeOnly !== null && activeOnly !== undefined) params.set('is_active', String(activeOnly));
+    if (committee) params.set('committee', committee);
+    if (assembly) params.set('assembly_number', assembly);
+
+    try {
+        setOverlay(true);
+        const res = await fetch(API_BASE + '/meetings?' + params.toString());
+        if (!res.ok) throw new Error('목록 조회 실패');
+        const list = await res.json();
+        currentMeetings = Array.isArray(list) ? list : [];
+        currentMeetings.sort((a, b) => {
+            const aAsm = (a.assembly_number || '').toString();
+            const bAsm = (b.assembly_number || '').toString();
+            if (aAsm !== bAsm) return aAsm.localeCompare(bAsm, 'ko');
+            const aNum = Number.isFinite(Number(a.meeting_number)) ? Number(a.meeting_number) : 0;
+            const bNum = Number.isFinite(Number(b.meeting_number)) ? Number(b.meeting_number) : 0;
+            if (aNum !== bNum) return aNum - bNum;
+            const aDate = (a.date || '').toString();
+            const bDate = (b.date || '').toString();
+            return aDate.localeCompare(bDate, 'ko');
+        });
+        renderMeetings(currentMeetings);
+        fillFilters(currentMeetings);
+        $('meetingsCount').textContent = currentMeetings.length;
+    } catch (e) {
+        currentMeetings = [];
+        $('meetingsList').innerHTML = '<p class="list-empty">회의록 목록을 불러올 수 없습니다.</p>';
+        $('meetingsCount').textContent = '0';
+    } finally {
+        setOverlay(false);
+    }
+}
+
+function renderMeetings(meetings) {
+    const el = $('meetingsList');
+    if (!meetings || meetings.length === 0) {
+        el.innerHTML = '<p class="list-empty">등록된 회의록이 없습니다.</p>';
+        return;
+    }
+    el.innerHTML = meetings.map(m => {
+        const name = escapeHtml(m.committee || '미지정');
+        const sub = escapeHtml([m.assembly_number, m.session_type].filter(Boolean).join(' '));
+        const date = escapeHtml(m.date || '');
+        const nth = m.meeting_number != null ? m.meeting_number + '차' : '';
+        const active = m.is_active ? ' active' : '';
+        const status = m.is_active ? '검색 대상' : '보관';
+        return `<div class="meeting-item${active}" data-id="${escapeHtml(String(m.id))}">
+            <h3>${name}</h3>
+            <p>${sub}</p>
+            <p>${date} ${nth}</p>
+            <span class="status-dot">${status}</span>
+        </div>`;
+    }).join('');
+}
+
+function fillFilters(meetings) {
+    const committees = [...new Set((meetings || []).map(m => m.committee).filter(Boolean))];
+    const assemblies = [...new Set((meetings || []).map(m => m.assembly_number).filter(Boolean))];
+
+    const selCommittee = $('committeeFilter');
+    const curC = selCommittee.value;
+    selCommittee.innerHTML = '<option value="">전체</option>' + committees.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    if (committees.includes(curC)) selCommittee.value = curC;
+
+    const selAssembly = $('assemblyFilter');
+    const curA = selAssembly.value;
+    selAssembly.innerHTML = '<option value="">전체</option>' + assemblies.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
+    if (assemblies.includes(curA)) selAssembly.value = curA;
+}
+
+/* 질문 제출 */
 async function handleQuery() {
-    const questionInput = document.getElementById('questionInput');
-    const question = questionInput.value.trim();
-    
+    const input = $('questionInput');
+    const question = (input.value || '').trim();
     if (!question) {
         alert('질문을 입력해주세요.');
+        input.focus();
         return;
     }
-    
-    const submitBtn = document.getElementById('submitBtn');
-    const answerArea = document.getElementById('answerArea');
-    const sourcesArea = document.getElementById('sourcesArea');
-    
+
+    const submitBtn = $('submitBtn');
+    const answerArea = $('answerArea');
+    const sourcesArea = $('sourcesArea');
+
     submitBtn.disabled = true;
     submitBtn.textContent = '처리 중...';
-    answerArea.innerHTML = '<p class="loading">답변을 생성하는 중...</p>';
-    sourcesArea.style.display = 'none';
-    
+    answerArea.innerHTML = '<div class="answer-empty"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:0.75rem">답변 생성 중...</p></div>';
+    sourcesArea.setAttribute('hidden', '');
+
+    setOverlay(true);
+
     try {
-        const includeInactive = document.getElementById('includeInactive').checked;
-        
-        const response = await fetch(`${API_BASE_URL}/query`, {
+        const res = await fetch(API_BASE + '/query', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 question: question,
-                include_inactive: includeInactive
+                include_inactive: $('includeInactive').checked
             })
         });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || '질문 처리 실패');
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || '질문 처리 실패');
         }
-        
-        const result = await response.json();
-        displayAnswer(result);
-        
-    } catch (error) {
-        console.error('Query error:', error);
-        answerArea.innerHTML = `<p style="color: red;">오류: ${error.message}</p>`;
+
+        const result = await res.json();
+        showAnswer(result);
+    } catch (e) {
+        answerArea.innerHTML = '<p class="answer-empty" style="color:var(--err)">오류: ' + escapeHtml(e.message) + '</p>';
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = '질문 제출';
+        setOverlay(false);
     }
 }
 
-// 답변 표시
-function displayAnswer(result) {
-    const answerArea = document.getElementById('answerArea');
-    const sourcesArea = document.getElementById('sourcesArea');
-    const sourcesList = document.getElementById('sourcesList');
-    
-    // 답변 표시
-    answerArea.innerHTML = `<div class="answer-content">${escapeHtml(result.answer)}</div>`;
-    
-    // 근거 문서 표시
-    if (result.sources && result.sources.length > 0) {
-        sourcesList.innerHTML = result.sources.map((source, index) => `
-            <div class="source-item">
-                <h4>근거 ${index + 1}</h4>
-                <p>${escapeHtml(source.content || '')}</p>
-                ${source.page ? `<p style="font-size: 0.8em; color: #666;">페이지: ${source.page}</p>` : ''}
-            </div>
-        `).join('');
-        sourcesArea.style.display = 'block';
+function showAnswer(result) {
+    const answerArea = $('answerArea');
+    const sourcesArea = $('sourcesArea');
+    const sourcesList = $('sourcesList');
+
+    const text = result.answer || '';
+    answerArea.innerHTML = '<div class="answer-content">' + formatAnswer(text) + '</div>';
+
+    const sources = result.sources;
+    if (sources && sources.length > 0) {
+        sourcesList.innerHTML = sources.map((src, i) => {
+            const content = escapeHtml(src.content || src.text || '');
+            const page = src.page ? `페이지: ${src.page}` : '';
+            const file = src.filename ? escapeHtml(src.filename) : '';
+            return `<div class="source-item"><p>${content}</p>${page ? '<p style="font-size:0.75rem;color:var(--text2);margin-top:0.35rem">' + page + '</p>' : ''}${file ? '<p style="font-size:0.75rem;color:var(--text2)">' + file + '</p>' : ''}</div>`;
+        }).join('');
+        sourcesArea.removeAttribute('hidden');
     } else {
-        sourcesArea.style.display = 'none';
+        sourcesArea.setAttribute('hidden', '');
     }
+
+    answerArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// HTML 이스케이프
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML.replace(/\n/g, '<br>');
+function formatAnswer(text) {
+    if (!text) return '';
+    let s = escapeHtml(text);
+    s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    s = s.replace(/\n/g, '<br>');
+    s = s.replace(/###\s+(.+)/g, '<h3>$1</h3>');
+    s = s.replace(/##\s+(.+)/g, '<h2>$1</h2>');
+    s = s.replace(/#\s+(.+)/g, '<h1>$1</h1>');
+    return s;
 }
 
+function setOverlay(show) {
+    const el = $('loadingOverlay');
+    if (!el) return;
+    if (show) el.removeAttribute('hidden');
+    else el.setAttribute('hidden', '');
+}
+
+window.addEventListener('unhandledrejection', e => {
+    setOverlay(false);
+});
