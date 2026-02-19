@@ -50,23 +50,20 @@ async def process_query(request: QueryRequest):
         else:
             # question_type이 없으면 자동 분류
             question_type = prompt_manager.classify_question(request.question)
-        
+
+        all_docs = metadata_db.get_all_documents()
+
         # 프롬프트 생성
         prompt = prompt_manager.get_prompt(question_type, request.question)
         
-        # Active Window 파일 ID 목록 가져오기
-        active_file_ids = None
-        if request.include_inactive:
-            # 전체 파일 검색 (Active + Inactive)
-            active_file_ids = metadata_db.get_all_file_ids()
-        else:
-            # Active Window 파일만 검색
-            active_file_ids = metadata_db.get_active_file_ids()
+        # 기본: 전체 문서 검색
+        active_file_ids = [doc.vector_store_file_id for doc in all_docs if doc.vector_store_file_id]
+        search_scope = "all"
         
         # Vector Store에서 질문 처리
         result = vector_store.query(
             question=prompt,
-            active_files_only=not request.include_inactive,
+            active_files_only=False,
             file_ids=active_file_ids
         )
         
@@ -76,13 +73,13 @@ async def process_query(request: QueryRequest):
             question_type=question_type.value,
             metadata={
                 "thread_id": result.get("thread_id"),
-                "run_id": result.get("run_id")
+                "run_id": result.get("run_id"),
+                "search_scope": search_scope
             }
         )
     
     except Exception as e:
         error_msg = str(e)
-        # OpenAI API 할당량 초과 에러인 경우 더 명확한 메시지 제공
         if "quota" in error_msg.lower() or "rate_limit" in error_msg.lower():
             raise HTTPException(
                 status_code=429,

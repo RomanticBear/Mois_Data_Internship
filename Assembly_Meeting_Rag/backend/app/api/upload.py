@@ -4,7 +4,6 @@ PDF 업로드 API
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from app.models.document import DocumentUploadRequest, DocumentResponse
-from app.services.active_window import ActiveWindowService
 from app.services.vector_store import VectorStoreService
 from app.services.metadata_db import MetadataDBService
 from app.utils.filename_parser import create_metadata_from_filename
@@ -17,21 +16,18 @@ router = APIRouter()
 # 서비스 초기화 (지연 초기화)
 _metadata_db = None
 _vector_store = None
-_active_window = None
 
 def get_services():
     """서비스 인스턴스 가져오기 (지연 초기화)"""
-    global _metadata_db, _vector_store, _active_window
+    global _metadata_db, _vector_store
     
     if _metadata_db is None:
         _metadata_db = MetadataDBService()
     if _vector_store is None:
         # 메타DB 참조를 전달하여 Active 파일 ID 동기화
         _vector_store = VectorStoreService(metadata_db=_metadata_db)
-    if _active_window is None:
-        _active_window = ActiveWindowService(metadata_db=_metadata_db, vector_store=_vector_store)
     
-    return _metadata_db, _vector_store, _active_window
+    return _metadata_db, _vector_store
 
 
 @router.post("/upload", response_model=DocumentResponse)
@@ -60,7 +56,7 @@ async def upload_document(
     
     try:
         # 서비스 가져오기
-        metadata_db, vector_store, active_window = get_services()
+        metadata_db, vector_store = get_services()
         
         # 메타데이터 생성 (파일명에서 추출 또는 요청 파라미터 사용)
         parsed_metadata = create_metadata_from_filename(file.filename)
@@ -84,8 +80,8 @@ async def upload_document(
         file_id = vector_store.upload_file(tmp_file_path, doc_metadata)
         doc_metadata.vector_store_file_id = file_id
         
-        # Active Window에 추가 (자동으로 크기 유지)
-        created_doc = active_window.add_document(doc_metadata)
+        # 메타DB에 저장 (Active Window 제거: 항상 전체 문서 유지)
+        created_doc = metadata_db.create_document(doc_metadata)
         
         return DocumentResponse(
             id=created_doc.id,
