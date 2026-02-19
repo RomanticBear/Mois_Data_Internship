@@ -9,11 +9,11 @@ const API_BASE = (() => {
 })();
 
 const TEMPLATES = {
-    summary: '최근 회의의 주요 내용을 요약해주세요.',
-    issue: '최근 회의에서 논의된 주요 쟁점들을 정리해주세요.',
-    speaker: '발언자별로 주요 발언 내용을 정리해주세요.',
-    material: '회의 중 요구된 자료제출요구 사항을 정리해주세요.',
-    next: '다음 회의를 준비하기 위한 포인트를 정리해주세요.'
+    summary: '최근 회의를 핵심만 브리핑해줘. 주요 안건/결정사항/미결 이슈를 간단히 정리해줘.',
+    issue: '최근 회의와 직전 회의를 비교해 주요 쟁점이 어떻게 바뀌었는지 분석해줘. 변화 포인트와 리스크를 정리해줘.',
+    speaker: '최근 회의에서 다뤄진 주요 법안별 핵심 변화를 정리해줘. 법안별로 변경 포인트, 기대효과, 남은 쟁점을 알려줘.',
+    material: '몇 회차에서 어떤 자료를 요구하였는지 알려주세요. 회차별로 요구 주체, 대상 기관, 요구 자료를 구체적으로 정리해줘.',
+    next: '다음 회의에서 바로 활용할 전략을 제안해줘. 우선순위 안건, 예상 질의, 준비자료를 정리해줘.'
 };
 
 let currentMeetings = [];
@@ -29,7 +29,6 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
-/* 초기화 */
 document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
     loadStats();
@@ -57,14 +56,12 @@ function bindEvents() {
 
     $('committeeFilter').addEventListener('change', loadMeetings);
     $('assemblyFilter').addEventListener('change', loadMeetings);
-    $('activeOnlyFilter').addEventListener('change', loadMeetings);
     $('refreshBtn').addEventListener('click', () => {
         loadStats();
         loadMeetings();
     });
 }
 
-/* 통계: 등록 문서 수만 표시 */
 async function loadStats() {
     try {
         const res = await fetch(API_BASE + '/stats');
@@ -76,14 +73,11 @@ async function loadStats() {
     }
 }
 
-/* 회의록 목록 */
 async function loadMeetings() {
-    const activeOnly = $('activeOnlyFilter').checked;
     const committee = ($('committeeFilter').value || '').trim();
     const assembly = ($('assemblyFilter').value || '').trim();
 
     const params = new URLSearchParams();
-    if (activeOnly !== null && activeOnly !== undefined) params.set('is_active', String(activeOnly));
     if (committee) params.set('committee', committee);
     if (assembly) params.set('assembly_number', assembly);
 
@@ -153,7 +147,6 @@ function fillFilters(meetings) {
     if (assemblies.includes(curA)) selAssembly.value = curA;
 }
 
-/* 질문 제출 */
 async function handleQuery() {
     const input = $('questionInput');
     const question = (input.value || '').trim();
@@ -180,7 +173,7 @@ async function handleQuery() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 question: question,
-                include_inactive: $('includeInactive').checked
+                include_inactive: true
             })
         });
 
@@ -210,7 +203,7 @@ function showAnswer(result) {
 
     const sources = result.sources;
     if (sources && sources.length > 0) {
-        sourcesList.innerHTML = sources.map((src, i) => {
+        sourcesList.innerHTML = sources.map((src) => {
             const content = escapeHtml(src.content || src.text || '');
             const page = src.page ? `페이지: ${src.page}` : '';
             const file = src.filename ? escapeHtml(src.filename) : '';
@@ -226,14 +219,100 @@ function showAnswer(result) {
 
 function formatAnswer(text) {
     if (!text) return '';
-    let s = escapeHtml(text);
-    s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    s = s.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    s = s.replace(/\n/g, '<br>');
-    s = s.replace(/###\s+(.+)/g, '<h3>$1</h3>');
-    s = s.replace(/##\s+(.+)/g, '<h2>$1</h2>');
-    s = s.replace(/#\s+(.+)/g, '<h1>$1</h1>');
-    return s;
+    const lines = String(text).replace(/\r\n/g, '\n').split('\n');
+    const html = [];
+    let inList = false;
+
+    const closeList = () => {
+        if (inList) {
+            html.push('</ul>');
+            inList = false;
+        }
+    };
+
+    const formatInline = (value) => {
+        let s = escapeHtml(value);
+        s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        s = s.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        s = s.replace(/【(\d+:\d+)†([^】]+)】/g, (_, ref, source) => {
+            return renderCitationChip(ref, source);
+        });
+        return s;
+    };
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) {
+            closeList();
+            html.push('<div class="answer-gap"></div>');
+            continue;
+        }
+
+        const h3 = line.match(/^###\s+(.+)$/);
+        if (h3) {
+            closeList();
+            html.push(`<h3 class="answer-section-title">${formatInline(h3[1])}</h3>`);
+            continue;
+        }
+        const h2 = line.match(/^##\s+(.+)$/);
+        if (h2) {
+            closeList();
+            html.push(`<h2 class="answer-section-title">${formatInline(h2[1])}</h2>`);
+            continue;
+        }
+        const h1 = line.match(/^#\s+(.+)$/);
+        if (h1) {
+            closeList();
+            html.push(`<h1 class="answer-section-title">${formatInline(h1[1])}</h1>`);
+            continue;
+        }
+
+        const numberedTitle = line.match(/^\d+\)\s*(.+?)(:)?$/);
+        if (numberedTitle) {
+            closeList();
+            html.push(`<h3 class="answer-section-title">${formatInline(numberedTitle[1])}</h3>`);
+            continue;
+        }
+
+        const bullet = line.match(/^[-•]\s+(.+)$/);
+        if (bullet) {
+            if (!inList) {
+                html.push('<ul class="answer-list">');
+                inList = true;
+            }
+            html.push(`<li>${formatInline(bullet[1])}</li>`);
+            continue;
+        }
+
+        closeList();
+        html.push(`<p>${formatInline(line)}</p>`);
+    }
+
+    closeList();
+    return html.join('');
+}
+
+function renderCitationChip(ref, source) {
+    const cleanSource = (source || '').trim();
+
+    // 실제 PDF 파일명이 확인되는 인용만 노출
+    if (!/\.pdf\b/i.test(cleanSource)) {
+        return '';
+    }
+    const short = simplifyCitationLabel(cleanSource);
+    const fullEscaped = escapeHtml(cleanSource);
+    const shortEscaped = escapeHtml(short);
+    return `<span class="cite-chip" title="${fullEscaped}">출처 · ${shortEscaped}</span>`;
+}
+
+function simplifyCitationLabel(source) {
+    const s = (source || '').trim();
+    const assembly = s.match(/제\d+회\([^)]+\)/)?.[0] || '';
+    const committee = s.match(/제\d+차\s*행정안전위원회/)?.[0] || '';
+    const date = s.match(/\d{4}\.\d{1,2}\.\d{1,2}/)?.[0] || '';
+    const pieces = [assembly, committee, date].filter(Boolean);
+    if (pieces.length > 0) return pieces.join(' · ');
+    return s.length > 42 ? `${s.slice(0, 42)}...` : s;
 }
 
 function setOverlay(show) {
@@ -243,6 +322,7 @@ function setOverlay(show) {
     else el.setAttribute('hidden', '');
 }
 
-window.addEventListener('unhandledrejection', e => {
+window.addEventListener('unhandledrejection', () => {
     setOverlay(false);
 });
+

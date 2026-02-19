@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>국회회의록 AI 인사이트</title>
-    <link id="app-style" rel="stylesheet" href="/static/style.css" onerror="this.onerror=null;this.href='./style.css';">
+    <link id="app-style" rel="stylesheet" href="/static/style.css?v=20260219-1" onerror="this.onerror=null;this.href='./style.css?v=20260219-1';">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
                 <span class="brand-mark">AI</span>
                 <div>
                     <h1 class="title">국회회의록 인사이트</h1>
-                    <p class="tagline">최근 회의를 이해하고, 다음 회의를 준비합니다</p>
+            <p class="tagline">최근 회의를 이해하고, 다음 회의를 준비합니다</p>
                 </div>
             </div>
             <div class="top-meta">
@@ -31,76 +31,68 @@
 
     <div class="screen">
         <aside class="col col-docs">
-            <section class="card card-docs">
+        <section class="card card-docs">
                 <div class="card-head">
                     <h2 class="card-h">회의록 현황</h2>
-                    <span class="card-sub">검색 대상과 보관 문서를 확인하세요</span>
+                    <span class="card-sub">전체 회의록을 확인하세요</span>
                 </div>
-                <div class="filters">
-                    <label class="filter-item">
-                        <span class="filter-lbl">국회 회차</span>
-                        <select id="assemblyFilter" class="filter-sel">
-                            <option value="">전체</option>
-                        </select>
-                    </label>
+            <div class="filters">
+                <label class="filter-item">
+                    <span class="filter-lbl">국회 회차</span>
+                    <select id="assemblyFilter" class="filter-sel">
+                        <option value="">전체</option>
+                    </select>
+                </label>
                     <label class="filter-item">
                         <span class="filter-lbl">위원회</span>
                         <select id="committeeFilter" class="filter-sel">
                             <option value="">전체</option>
                         </select>
-                    </label>
-                    <label class="filter-check">
-                        <input type="checkbox" id="activeOnlyFilter" checked>
-                        <span>최근 문서만 보기</span>
-                    </label>
-                </div>
+                </label>
+            </div>
 
-                <div class="list-head">
-                    <span>회의록 목록</span>
-                    <span class="list-count" id="meetingsCount">0</span>
-                </div>
-                <div class="meetings-list" id="meetingsList">
-                    <p class="list-empty">등록된 회의록이 없습니다.</p>
-                </div>
-            </section>
+            <div class="list-head">
+                <span>회의록 목록</span>
+                <span class="list-count" id="meetingsCount">0</span>
+            </div>
+            <div class="meetings-list" id="meetingsList">
+                <p class="list-empty">등록된 회의록이 없습니다.</p>
+            </div>
+        </section>
         </aside>
 
         <main class="col col-main">
-            <section class="card card-ask">
+        <section class="card card-ask">
                 <div class="card-head">
-                    <h2 class="card-h">질문하기</h2>
+            <h2 class="card-h">질문하기</h2>
                     <span class="card-sub">템플릿을 선택하거나 직접 입력하세요</span>
                 </div>
-                <div class="pill-row">
-                    <button type="button" class="pill" data-template="summary">회의 요약</button>
-                    <button type="button" class="pill" data-template="issue">주요 쟁점</button>
-                    <button type="button" class="pill" data-template="speaker">발언자별 정리</button>
-                    <button type="button" class="pill" data-template="material">자료요구 목록</button>
-                    <button type="button" class="pill" data-template="next">다음 회의 준비</button>
-                </div>
-                <textarea id="questionInput" class="ask-input" rows="4" placeholder="질문을 입력하세요. 예: 최근 회의에서 논의된 주요 쟁점은 무엇인가요?"></textarea>
-                <div class="ask-bar">
-                    <label class="ask-check">
-                        <input type="checkbox" id="includeInactive">
-                        <span>전체 문서에서 검색</span>
-                    </label>
-                    <button type="button" class="btn btn-main" id="submitBtn">질문 제출</button>
-                </div>
-            </section>
+            <div class="pill-row">
+                <button type="button" class="pill" data-template="summary">핵심 요약 브리핑</button>
+                <button type="button" class="pill" data-template="issue">쟁점 변화 분석</button>
+                <button type="button" class="pill" data-template="speaker">법안별 핵심 변화</button>
+                <button type="button" class="pill" data-template="material">자료요구 목록</button>
+                <button type="button" class="pill" data-template="next">다음 회의 전략 제안</button>
+            </div>
+            <textarea id="questionInput" class="ask-input" rows="4" placeholder="질문을 입력하세요. 예: 최근 회의에서 논의된 주요 쟁점은 무엇인가요?"></textarea>
+            <div class="ask-bar">
+                <button type="button" class="btn btn-main" id="submitBtn">질문 제출</button>
+            </div>
+        </section>
 
-            <section class="card card-answer">
+        <section class="card card-answer">
                 <div class="card-head">
-                    <h2 class="card-h">답변</h2>
+            <h2 class="card-h">답변</h2>
                     <span class="card-sub">검색 근거와 함께 결과를 제공합니다</span>
                 </div>
-                <div id="answerArea" class="answer-box">
-                    <p class="answer-empty">질문을 입력한 뒤 제출 버튼을 누르세요.</p>
-                </div>
-                <div id="sourcesArea" class="sources-box" hidden>
-                    <h3 class="sources-h">근거 문서</h3>
-                    <div id="sourcesList" class="sources-list"></div>
-                </div>
-            </section>
+            <div id="answerArea" class="answer-box">
+                <p class="answer-empty">질문을 입력한 뒤 제출 버튼을 누르세요.</p>
+            </div>
+            <div id="sourcesArea" class="sources-box" hidden>
+                <h3 class="sources-h">근거 문서</h3>
+                <div id="sourcesList" class="sources-list"></div>
+            </div>
+        </section>
         </main>
     </div>
 
@@ -113,6 +105,6 @@
         <p>처리 중입니다. 잠시만 기다려주세요.</p>
     </div>
 
-    <script src="/static/script.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='./script.js';document.body.appendChild(s);"></script>
+    <script src="/static/script.js?v=20260219-2" onerror="this.onerror=null;var s=document.createElement('script');s.src='./script.js?v=20260219-2';document.body.appendChild(s);"></script>
 </body>
 </html>
