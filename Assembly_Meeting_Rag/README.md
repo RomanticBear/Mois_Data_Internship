@@ -35,7 +35,7 @@
 - **Frontend**: HTML, JavaScript, CSS
 - **RAG**: OpenAI File Search (Managed RAG)
 - **Vector Store**: OpenAI Vector Store
-- **Database**: SQLite (메타DB)
+- **Database**: SQLite (로컬) / PostgreSQL (Supabase)
 
 ## 프로젝트 구조
 
@@ -107,6 +107,12 @@ Assembly_Meeting_Rag/
 cd backend
 cp .env.example .env
 # .env 파일에 OpenAI API 키 설정
+```
+
+Supabase(PostgreSQL)를 사용할 경우 `.env`에 다음을 추가합니다.
+
+```bash
+DATABASE_URL=postgresql://<USER>:<PASSWORD>@<HOST>:<PORT>/<DB>?sslmode=require
 ```
 
 ### 2. 의존성 설치

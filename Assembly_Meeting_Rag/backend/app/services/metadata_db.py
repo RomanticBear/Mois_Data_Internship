@@ -1,6 +1,6 @@
 """
 메타DB 관리 서비스
-SQLite 기반 문서 메타데이터 관리
+SQLite/PostgreSQL 기반 문서 메타데이터 관리
 """
 import os
 from datetime import datetime
@@ -36,7 +36,10 @@ class MetadataDBService:
     def __init__(self, db_url: Optional[str] = None):
         if db_url is None:
             db_url = os.getenv("DATABASE_URL", "sqlite:///./metadata.db")
-        self.engine = create_engine(db_url, connect_args={"check_same_thread": False})
+        connect_args = {}
+        if db_url.startswith("sqlite"):
+            connect_args = {"check_same_thread": False}
+        self.engine = create_engine(db_url, connect_args=connect_args)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         self._init_db()
     
