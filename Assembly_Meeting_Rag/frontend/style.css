@@ -177,6 +177,15 @@ body {
     margin-bottom: 0.75rem;
 }
 
+.card-head-docs {
+    align-items: center;
+}
+
+.card-head-docs .card-sub {
+    display: block;
+    margin-top: 0.12rem;
+}
+
 .card-h {
     margin: 0;
     font-size: 1rem;
@@ -291,6 +300,12 @@ body {
 
 .btn-nav:active {
     background: #dbeafe;
+}
+
+.btn-refresh {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
 }
 
 .list-head {

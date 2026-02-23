@@ -58,7 +58,6 @@
                         발언검색
                     </a>
                 </nav>
-                <button type="button" class="btn btn-ghost" id="refreshBtn">데이터 새로고침</button>
             </div>
         </div>
     </header>
@@ -66,9 +65,12 @@
     <div class="screen">
         <aside class="col col-docs">
         <section class="card card-docs">
-                <div class="card-head">
-                    <h2 class="card-h">회의록 현황</h2>
-                    <span class="card-sub">전체 회의록을 확인하세요</span>
+                <div class="card-head card-head-docs">
+                    <div>
+                        <h2 class="card-h">회의록 현황</h2>
+                        <span class="card-sub">전체 회의록을 확인하세요</span>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-refresh" id="refreshBtn">데이터 새로고침</button>
                 </div>
             <div class="filters">
                 <label class="filter-item">
