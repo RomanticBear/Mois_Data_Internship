@@ -30,6 +30,10 @@ API_KEY = os.getenv("NA_OPEN_API_KEY", "065cc2aaf8fc41489588360aae7b9270")
 P_SIZE = 100
 TIMEOUT = 20
 RETRY = 3
+ASSEMBLY_NUMBER = os.getenv("ASSEMBLY_NUMBER", "21")
+TARGET_COMMITTEE = os.getenv("TARGET_COMMITTEE", "행정안전위원회")
+TARGET_YEARS = [y.strip() for y in os.getenv("TARGET_YEARS", "").split(",") if y.strip()]
+EXCLUDE_SUBCOMMITTEE = os.getenv("EXCLUDE_SUBCOMMITTEE", "true").lower() in ("1", "true", "yes", "y")
 
 # 공통 파라미터 설정
 params_common = {
@@ -37,8 +41,8 @@ params_common = {
     "Type": "json",
     "pIndex": 1,
     "pSize": P_SIZE,
-    "DAE_NUM": "22",
-    "COMM_NAME": "행정안전위원회",
+    "DAE_NUM": ASSEMBLY_NUMBER,
+    "COMM_NAME": TARGET_COMMITTEE,
 }
 
 
@@ -182,6 +186,29 @@ def get_session_folder_name(session_num):
     return "기타"
 
 
+def is_subcommittee_row(row):
+    """소위원회 관련 회의록 여부 판별"""
+    text_fields = [
+        row.get("CLASS_NAME", ""),
+        row.get("SUB_NAME", ""),
+        row.get("TITLE", ""),
+        row.get("CONF_ID", ""),
+    ]
+    joined = " ".join(str(v) for v in text_fields if pd.notna(v))
+    return "소위원회" in joined
+
+
+def get_default_years_for_assembly(assembly_number):
+    """대수별 기본 연도 범위 반환 (API 연도 필수 대응)"""
+    if assembly_number == "20":
+        return ["2020", "2019", "2018", "2017", "2016"]
+    if assembly_number == "21":
+        return ["2024", "2023", "2022", "2021", "2020"]
+    if assembly_number == "22":
+        return ["2026", "2025", "2024"]
+    return ["2026", "2025", "2024", "2023", "2022", "2021", "2020"]
+
+
 def download_pdf(url, save_dir, session_folder):
     """PDF 파일 다운로드"""
     try:
@@ -237,21 +264,40 @@ def main():
 
     # 1. API로 회의록 데이터 수집
     print("📡 API로 회의록 데이터 수집 중...")
-    years = ["2025", "2024", "2023"]  # 필요한 연도 추가 가능
-    
+    print(f"  - 대상 대수: {ASSEMBLY_NUMBER}대")
+    print(f"  - 대상 위원회: {TARGET_COMMITTEE}")
+    print(f"  - 소위원회 제외: {'예' if EXCLUDE_SUBCOMMITTEE else '아니오'}")
+    print()
+
     all_rows = []
-    for year in years:
-        print(f"  - {year}년 데이터 수집 중...")
+
+    effective_years = TARGET_YEARS[:] if TARGET_YEARS else get_default_years_for_assembly(ASSEMBLY_NUMBER)
+
+    if effective_years:
+        if TARGET_YEARS:
+            print(f"  - 대상 연도: {', '.join(effective_years)}")
+        else:
+            print(f"  - 대상 연도: {', '.join(effective_years)} (기본값)")
+        for year in effective_years:
+            print(f"    · {year}년 데이터 수집 중...")
+            try:
+                rows = fetch_all_rows(filters={"CONF_DATE": year})
+                all_rows.extend(rows)
+                print(f"      ✅ {len(rows)}건 수집 완료")
+            except RuntimeError as e:
+                if "해당하는 데이터가 없습니다" in str(e) or "INFO-200" in str(e):
+                    print(f"      ⚠️ {year}년 데이터가 없습니다. 스킵합니다.")
+                else:
+                    print(f"      ❌ {year}년 데이터 수집 실패: {e}")
+                    raise
+    else:
+        print("  - 대상 연도: 전체 (연도 필터 없음)")
         try:
-            rows = fetch_all_rows(filters={"CONF_DATE": year})
-            all_rows.extend(rows)
-            print(f"    ✅ {len(rows)}건 수집 완료")
+            all_rows = fetch_all_rows()
+            print(f"    ✅ {len(all_rows)}건 수집 완료")
         except RuntimeError as e:
-            if "해당하는 데이터가 없습니다" in str(e) or "INFO-200" in str(e):
-                print(f"    ⚠️ {year}년 데이터가 없습니다. 스킵합니다.")
-            else:
-                print(f"    ❌ {year}년 데이터 수집 실패: {e}")
-                raise
+            print(f"    ❌ 전체 데이터 수집 실패: {e}")
+            raise
     
     if not all_rows:
         print("❌ 수집된 데이터가 없습니다.")
@@ -274,7 +320,14 @@ def main():
 
     # PDF 링크가 있는 데이터만 필터링
     df_pdfs = df[df["PDF_LINK_URL"].notna()].copy()
-    
+
+    # 소위원회 제외 옵션 적용
+    if EXCLUDE_SUBCOMMITTEE and not df_pdfs.empty:
+        before_count = len(df_pdfs)
+        df_pdfs = df_pdfs[~df_pdfs.apply(is_subcommittee_row, axis=1)].copy()
+        excluded_count = before_count - len(df_pdfs)
+        print(f"🚫 소위원회 제외: {excluded_count}건")
+
     if df_pdfs.empty:
         print("❌ PDF 링크가 있는 데이터가 없습니다.")
         return
