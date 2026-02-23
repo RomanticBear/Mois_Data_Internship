@@ -264,18 +264,33 @@ body {
 }
 
 .btn-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
     text-decoration: none;
     background: #f8fafc;
     color: #334155;
     border-color: var(--line);
     padding: 0.45rem 0.85rem;
     font-size: 0.84rem;
+    font-weight: 500;
+}
+
+.btn-nav:link,
+.btn-nav:visited {
+    color: #334155;
+    text-decoration: none;
 }
 
 .btn-nav:hover {
     border-color: var(--primary);
     color: var(--primary);
     background: #eff6ff;
+}
+
+.btn-nav:active {
+    background: #dbeafe;
 }
 
 .list-head {
