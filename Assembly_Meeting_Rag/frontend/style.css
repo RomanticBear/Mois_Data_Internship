@@ -178,12 +178,21 @@ body {
 }
 
 .card-head-docs {
-    align-items: center;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.card-head-docs > div {
+    min-width: 0;
 }
 
 .card-head-docs .card-sub {
     display: block;
     margin-top: 0.12rem;
+}
+
+.card-head-docs .btn-refresh {
+    margin-left: auto;
 }
 
 .card-h {
@@ -198,13 +207,38 @@ body {
 }
 
 .filters {
+    display: block;
+    padding: 0.8rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #f8fafc;
+    margin: 0.65rem 0 0.9rem;
+}
+
+.filter-row {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
-    padding: 0.75rem 0;
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-    margin: 0.75rem 0 0.85rem;
+    align-items: stretch;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.filter-row .filter-lbl {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    margin-bottom: 0.1rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.filter-row .filter-sel {
+    width: 100%;
+    min-width: 0;
+    background: #ffffff;
+}
+
+.filter-row .filter-sel + .filter-sel {
+    margin-top: 0.1rem;
 }
 
 .filter-item {
@@ -212,6 +246,7 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
+    min-width: 0;
 }
 
 .filter-lbl {
@@ -227,7 +262,7 @@ body {
     border-radius: 10px;
     background: var(--card);
     color: var(--text);
-    min-width: 140px;
+    min-width: 0;
 }
 
 .btn {
@@ -604,6 +639,11 @@ body {
     }
     .btn-main {
         width: 100%;
+    }
+    .filter-row {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
     }
 }
 
